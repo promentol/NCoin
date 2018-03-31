@@ -71,6 +71,9 @@ export const verifyBlockTransactions = (block: Block) => {
     if (block.transactions[0].data.type != TransactionType.CoinBase) {
         return Observable.of(false);
     }
+    if (block.transactions[0].data.amount != 100) {
+        return Observable.of(false);
+    }
 
     for (var i in block.transactions) {
         if (!verifyTransactionSignature(block.transactions[i])) {
