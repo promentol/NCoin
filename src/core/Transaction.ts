@@ -5,6 +5,7 @@ export interface Transaction {
         to: string;
         amount: number;
         payload: string;
+        nonce: string;
     },
     signature?: string;
 }

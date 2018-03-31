@@ -1,5 +1,6 @@
 const express = require('express')
 const bodyParser = require('body-parser')
+import * as BlockChain from '../core'
 
 export function initREST(port) {
     
@@ -12,16 +13,25 @@ export function initREST(port) {
     })
 
     app.get('/blocksCount', function (req, res) {
-
-        res.send('REST SERVER')
+        BlockChain.getBlockCount().subscribe((blocksCount)=>{
+            res.send({
+                blocksCount
+            })
+        })
     })
 
     app.get('/blocks/:hash', function (req, res) {
-        res.send('REST SERVER')
+        BlockChain.getBlock(req.params.hash).subscribe((blocksCount) => {
+            res.send({
+                blocksCount
+            })
+        })
     })
 
     app.get('/transactions/:hash', function (req, res) {
-        res.send('REST SERVER')
+        BlockChain.getTransaction(req.params.hash).subscribe((tx) => {
+            res.send(tx)
+        })
     })
 
     app.post('/transactions', function (req, res) {

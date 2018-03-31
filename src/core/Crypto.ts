@@ -16,7 +16,11 @@ import {
 
 export const generatePrivateKey = () => {
     const privKey = randomBytes(32)
-    return secp256k1.privateKeyVerify(privKey) ? privKey : generatePrivateKey()
+    return verifyPrivateKey(privKey) ? privKey : generatePrivateKey()
+}
+
+export const verifyPrivateKey = (privKey) => {
+    return secp256k1.privateKeyVerify(privKey)
 }
 
 export const generatePublicKey = (privKey) => {
