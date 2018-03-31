@@ -1,7 +1,7 @@
 import { Transaction } from './Transaction'
 
 
-enum BlockType {
+export enum BlockType {
     Genensis = 0,
     Usual = 1,
 }
