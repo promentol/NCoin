@@ -1,0 +1,11 @@
+{
+    "header": {
+        "previousBlockHash": null,
+        "depth": 0,
+        "nonce": 0,
+        "merkleRoot": null,
+        "miner": null,
+        "authorities": ["asd", "aaaa"]
+    },
+    "transactions": []
+}
