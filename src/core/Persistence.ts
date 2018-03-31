@@ -22,7 +22,7 @@ import { BehaviorSubject } from 'rxjs/BehaviorSubject';
 
 export default class Persistence {
 
-    static get Instance() {
+    static get Instance(): Persistence {
         if(!this._instance) {
             this._instance = new Persistence()
         }
