@@ -1,8 +1,8 @@
 .vscode
 node_modules
 data
-src/*.js
-src/*.js.map
-test/*.js
-test/*.js.map
+src/**/*.js
+src/**/*.js.map
+test/**/*.js
+test/**/*.js.map
 TestResults

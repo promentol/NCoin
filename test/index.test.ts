@@ -8,7 +8,7 @@ import {
     encodeBlockHeader,
     encodeTransaction,
     calculateMerkle
-} from '../src/index'
+} from '../src/core'
 
 debug(encodeBlockHeader({
     header: {
