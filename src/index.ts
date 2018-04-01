@@ -5,6 +5,8 @@ import {
     initREST
 } from './rest'
 
+import NCoinNetwork from './network'
+
 //PROCESS ARGUMENTS
 const parseArgs = require('minimist')
 const args = parseArgs(process.argv)
@@ -31,7 +33,7 @@ try {
 }
 
 //private key
-//private key, public key initioation
+//private key, public key initiation
 const keyDirectory = args.k || args.key
 const key = keyDirectory ? fs.readFileSync(keyDirectory) : BlockChain.generatePrivateKey()
 
@@ -43,7 +45,11 @@ if (!BlockChain.verifyPrivateKey(key)) {
 
 //network port
 //initialize network
-//initialize Network
+const netWorkPort = parseInt(args.p) || parseInt(args.port) || 1996
+
+const { bootAddresses } = require('./config/config')
+
+new NCoinNetwork(netWorkPort, bootAddresses)
 
 //rest port
 //initialize REST API
@@ -53,5 +59,5 @@ if (restPort) {
 }
 
 //miner
-//initialize Miner Network
+//initialize Miner
 
