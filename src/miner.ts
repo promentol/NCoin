@@ -2,10 +2,8 @@
 import events = require('events');
 
 import {
-    transactionPool,
     signBlock,
     calculateMerkle,
-    eraseTransactionToPool,
     createBlock
 } from './core'
 
