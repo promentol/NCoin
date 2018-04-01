@@ -14,7 +14,7 @@ const fs = require('fs')
 
 
 //data directory
-const dataDirectory = args.d || args.data || '../data'
+const dataDirectory = args.d || args.data || './data'
 
 try {
     const stats = fs.lstatSync(dataDirectory)
@@ -46,10 +46,11 @@ if (!BlockChain.verifyPrivateKey(key)) {
 //network port
 //initialize network
 const netWorkPort = parseInt(args.p) || parseInt(args.port) || 1996
+const noBootstrap = args.nb
 
 const { bootAddresses } = require('./config/config')
 
-new NCoinNetwork(netWorkPort, bootAddresses)
+new NCoinNetwork(netWorkPort, noBootstrap ? [] : bootAddresses)
 
 //rest port
 //initialize REST API

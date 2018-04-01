@@ -1,5 +1,16 @@
 import * as net from 'net'
 import { Subject } from "rxjs/Subject";
+import 'rxjs/add/operator/map';
+import 'rxjs/add/operator/multicast'; 
+import 'rxjs/add/operator/filter';
+
+declare class Map<T> extends NodeIterator {
+    set(key, value)
+    delete(key)
+    forEach(cb)
+    has(key)
+}
+
 
 //hello question
 //address  answer
@@ -46,20 +57,30 @@ interface Address {
 }
 
 export default class NCoinNetwork {
+    mainConnection: NCoinServerConnection;
     constructor(myPort, bootAddresses: Address[]) {
-        net.createServer(myPort, (socket)=>{
-            this.processConnection(new NCoinServerConnection(socket))
+        const server = net.createServer((socket)=>{
+            this.mainConnection = new NCoinServerConnection(socket)
+            this.processConnection(this.mainConnection)
         })
+        server.listen(myPort, ()=>{
+            console.log(`TCP SERVER STARTED ON PORT ${myPort}`)
+        })
+        server.on('error', (e: any) => {
+            
+        });
+        
         bootAddresses.forEach((address: Address)=>{
-            this.processConnection(new NCoinClientConnection(address))
+            this.processAddress(address)
         })
 
         //Handle Hello Message
         this.messages
-            .subscribe(({ connection, message}) => {
+            .subscribe(({ connection, message }) => {
                 if (message instanceof NCoinHelloMessage) {
-                    const addressMessage = new NCoinAddressMessage(this.addresses)
-                    connection.sendData(addressMessage.payload)
+                    const addressMessage = new NCoinAddressMessage(this.getAddresses())
+                    connection.sendData(addressMessage.payloadBuffer)
+                    this.addresses.set(message.data, connection)
                 }
             })
 
@@ -68,7 +89,7 @@ export default class NCoinNetwork {
             .subscribe(({ connection, message }) => {
                 if (message instanceof NCoinAddressMessage) {
                     message.addresses.forEach(address => {
-                        this.processConnection(new NCoinClientConnection(address))
+                        this.processAddress(address)
                     });
                 }
             })
@@ -87,24 +108,42 @@ export default class NCoinNetwork {
         //setup ping and address table, remove
 
     }
-    addresses: Address[];
+    getAddresses() {
+        const addresses = []
+        this.addresses.forEach((x, y) => addresses.push(y))
+        return addresses
+    }
+    addresses: Map<Address> = new Map();
     messages: Subject<{
         connection: NCoinConnection,
         message: NCoinMessage
     }> = new Subject();
-    processConnection(n: NCoinConnection) {
+
+    processAddress(address: Address) {
+        if(!this.addresses.has(address)){
+            const n = new NCoinClientConnection(address)
+            this.addresses.set(address, n)// = n
+            this.processConnection(n)
+        }
+    }
+
+    processConnection(n: NCoinConnection, address?: Address) {
         n.messages.map((message)=>{
             return {
                 connection: n,
                 message: NCoinMessage.makeFromBuffer(message)
             }
-        }).subscribe(this.messages)
+        }).subscribe(
+            (x)=>{ this.messages.next(x) },
+            (error) => console.log("Error"),
+            () => { address && this.addresses.delete(address) }
+        )
     }
 }
 
 abstract class NCoinConnection  {
     abstract sendData(m: Buffer) 
-    messages: Subject<Buffer>;
+    public messages: Subject<Buffer> = new Subject();
 }
 
 class NCoinServerConnection extends NCoinConnection {
@@ -132,6 +171,9 @@ class NCoinClientConnection extends NCoinConnection {
         this.client.on("data", (data)=>{
             this.messages.next(data)
         })
+        this.client.on("error", (e) => {
+            //console.log(e)
+        })
         this.client.on("close", () => {
             this.messages.complete()
         })
@@ -158,7 +200,7 @@ abstract class NCoinMessage {
         }
         return null
     }
-    get payloadBuffer(): Buffer {
+    public get payloadBuffer(): Buffer {
         return Buffer.from(JSON.stringify({
             type: this.type,
             data: this.payload
@@ -169,11 +211,11 @@ abstract class NCoinMessage {
 
 class NCoinHelloMessage extends NCoinMessage {
     static TYPE = 'hello'
-    private data: any;
+    public data: any;
     constructor(data) {
         super()
         this._type = NCoinHelloMessage.TYPE
-        this.data = [];
+        this.data = data;
     }
     get payload(): any {
         return this.data;

@@ -1,3 +1,13 @@
 {
-    "bootAddresses": []
+    "bootAddresses": [{
+        "url": "127.0.0.1",
+        "port": 22
+    },{
+        "url": "127.0.0.1",
+        "port": 23
+    },
+    {
+        "url": "127.0.0.1",
+        "port": 24
+    }]
 }
