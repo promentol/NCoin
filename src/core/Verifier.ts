@@ -10,6 +10,8 @@ import {
 
 import * as Crypto from './Crypto'
 
+import * as Immutable from 'immutable'
+
 import { Observable } from 'rxjs/Observable';
 import 'rxjs/add/observable/of';
 import 'rxjs/add/observable/from';
@@ -23,21 +25,36 @@ import 'rxjs/add/operator/toArray';
 import 'rxjs/add/operator/scan';
 import 'rxjs/add/operator/skip';
 import 'rxjs/add/operator/do';
-import 'rxjs/add/operator/mergeScan'; 
+import 'rxjs/add/operator/mergeScan';
+import 'rxjs/add/operator/reduce';
+import 'rxjs/add/operator/catch'; 
 
 
-import Persistent from './Persistence'
+import Persistence from './Persistence'
+
+
+interface State extends Immutable.Map<string, Balance> {
+
+}
+
+interface Balance {
+    value: number;
+    nonce: number;
+}
 
 const genesis: Block = require('../config/genesis.json');
 
+export const initialState = (): State => {
+    return Immutable.Map()
+}
 
 export const verifyBlock = (block: Block) => {
-    return Persistent.Instance.getBlockByHash(block.header.previousBlockHash).map((previousBlock) => {
+    return Persistence.Instance.getBlockByHash(block.header.previousBlockHash).map((previousBlock) => {
         return previousBlock.header.depth + 1 == block.header.depth;
     }).map((x) => {
         return x && verifySignatureOfBlock(block)
     }).map((x) => {
-        return x && verifyMerkleRootOfBlock(block)
+        return x && Crypto.calculateMerkle(block.transactions) == block.header.merkleRoot;
     }).switchMap((x) => {
         if (x) {
             return verifyBlockTransactions(block)
@@ -59,12 +76,10 @@ export const verifySignatureOfBlock = (block: Block) => {
     }
 
     const publicKey = Buffer.from(block.transactions[0].data.to, 'hex');
-    return secp256k1.verify(hashBlock(block), block.singature, publicKey);
+    return Crypto.verifySignatureOfBlock(block, publicKey)
 }
 
 export const verifyBlockTransactions = (block: Block) => {
-    //group by `from` calculate
-    //call getSpendableAmount 
     if (!block.transactions || !block.transactions.length) {
         return Observable.of(false)
     }
@@ -76,54 +91,59 @@ export const verifyBlockTransactions = (block: Block) => {
     }
 
     for (var i in block.transactions) {
-        if (!verifyTransactionSignature(block.transactions[i])) {
+        if (!Crypto.verifyTransactionSignature(block.transactions[i], block.transactions[i].data.from)) {
             return Observable.of(false);
         }
     }
-    block.transactions = [block.transactions[0]];
-    return Observable.from(block.transactions).skip(1).mergeScan((result, tx) => {
-        if (result) {
-            return verifyTransactionAgainstBlock(tx, block).do((x) => block.transactions.push(tx))
-        }
-        return Observable.of(false);
-    }, true)
+    return applyAndVerifyState(block)
 }
 
-export const verifyTransactionAgainstBlock = (tx: Transaction, block: Block) => {
-    return getSpendableAmount(tx.data.from, block).map((data) => {
-        return data.plus - data.minus >= tx.data.amount;
+export const applyAndVerifyState = (block: Block) => {
+    return getState(block).map((state: State)=>{
+        return true;
+    }).catch((e) => {
+        return Observable.of(false)
     })
 }
 
-//TODO
-export const getSpendableAmount = (user: string, block: Block): any => {
-    const minus = Observable
-        .from(block.transactions)
-        .filter((tx: Transaction) => tx.data.from == user)
-        .toArray()
-        .scan((acc, curr) => acc + curr, );
+export const getState = (block: Block): Observable<State> => {
+    if(Crypto.hashBlock(block) == Crypto.hashBlock(genesis) ) {
+        return Observable.of(initialState());
+    } else {
+        Persistence.Instance.getBlockByHash(block.header.previousBlockHash).switchMap((previousBlock: Block) =>{
+            return getState(previousBlock)
+        }).map((previousState)=>{
+            return applyBlockToState(previousState, block)
+        })
+    }
+}
 
-    const plus = Observable
-        .from(block.transactions)
+export const applyBlockToState = (previousState: State, block: Block) => {
+    return Observable.from(block.transactions).reduce(applyTransactionToState, previousState)
+}
 
-
-    return Observable.merge(minus, plus).switchMap(([minus, plus]) => {
-        const result = { minus, plus }
-        if (block.header.type == BlockType.Genensis) {
-            return Observable.of({
-                plus,
-                minus
-            })
-        } else {
-            return getBlockByHash(block.header.previousBlockHash).switchMap((prevBlock) => {
-                return getSpendableAmount(user, prevBlock)
-            }).switchMap((data: any) => {
-                return {
-                    plus: data.plus + plus,
-                    minus: data.minus + minus
-                }
-            })
+export const applyTransactionToState = (state: State, tx: Transaction) => {
+    if (tx.data.from) {
+        const accountA = state.get(tx.data.from)
+        const accountB = state.get(tx.data.to)
+        if (accountA.nonce > tx.data.nonce) {
+            throw new Error("invalid nonce")
         }
-    })
-
+        if (accountA.value < tx.data.amount) {
+            throw new Error("invalid amount")
+        }
+        return state.set(tx.data.from, {
+            nonce: tx.data.nonce,
+            value: accountA.value - tx.data.amount
+        }).set(tx.data.to, {
+            nonce: tx.data.nonce,
+            value: accountB.value + tx.data.amount
+        })
+    } else {
+        const accountB = state.get(tx.data.to)
+        return state.set(tx.data.to, {
+            nonce: tx.data.nonce,
+            value: accountB.value + tx.data.amount
+        })
+    }
 }

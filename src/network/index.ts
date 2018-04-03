@@ -1,8 +1,10 @@
 import * as net from 'net'
 import { Subject } from "rxjs/Subject";
+import { Observable } from "rxjs/Observable"
 import 'rxjs/add/operator/map';
 import 'rxjs/add/operator/multicast'; 
 import 'rxjs/add/operator/filter';
+import { checkServerIdentity } from 'tls';
 
 declare class Map<T> extends NodeIterator {
     set(key, value)
@@ -56,6 +58,15 @@ interface Address {
     port: number;
 }
 
+interface INV {
+    type: INV_TYPE;
+    hash: string;
+}
+enum INV_TYPE {
+    INV_TRANSACTION,
+    INV_BLOCK
+}
+
 export default class NCoinNetwork {
     mainConnection: NCoinServerConnection;
     constructor(myPort, bootAddresses: Address[]) {
@@ -73,6 +84,8 @@ export default class NCoinNetwork {
         bootAddresses.forEach((address: Address)=>{
             this.processAddress(address)
         })
+
+        //send getblock message
 
         //Handle Hello Message
         this.messages
@@ -94,8 +107,22 @@ export default class NCoinNetwork {
                 }
             })
 
-        //Handle getblock message
-        //handle inv message
+        //Handle INV message
+        this.messages
+            .filter(({ message }) => message instanceof NCoinInvMessage)
+            .switchMap(({ connection, message }) => {
+                if (message instanceof NCoinInvMessage) {
+                    return Observable.from(message.data)
+                }
+            }).map((inv: INV)=>{
+                if(inv.type == INV_TYPE.INV_BLOCK) {
+                    return {inv, x: true}
+                } else if (inv.type == INV_TYPE.INV_TRANSACTION) {
+                    return 
+                }
+            })
+
+        //handle getblock message
         //handle getdata message
         //handle tx message
         //handle bx message
@@ -198,6 +225,9 @@ abstract class NCoinMessage {
         if (type == NCoinHelloMessage.TYPE) {
             return new NCoinHelloMessage(data)
         }
+        if (type == NCoinInvMessage.TYPE) {
+            return new NCoinInvMessage(data)
+        }
         return null
     }
     public get payloadBuffer(): Buffer {
@@ -220,6 +250,33 @@ class NCoinHelloMessage extends NCoinMessage {
     get payload(): any {
         return this.data;
     }
+}
+
+class NCoinInvMessage extends NCoinMessage {
+    static TYPE = 'inv'
+    public data: INV[];
+    constructor(data) {
+        super()
+        this._type = NCoinInvMessage.TYPE
+        this.data = data;
+    }
+    get payload(): any {
+        return this.data;
+    }
+}
+
+class NCoinGetDataMessage extends NCoinMessage {
+    static TYPE = 'getdata';
+    public data: INV;
+    constructor(data) {
+        super()
+        this._type = NCoinGetDataMessage.TYPE
+        this.data = data;
+    }
+    get payload(): any {
+        return this.data;
+    }
+
 }
 
 class NCoinAddressMessage extends NCoinMessage {
