@@ -1,7 +1,6 @@
 import {
     Transaction,
-    getBlockByHash,
-    checkBlockByHash,
+    TransactionType,
     Block,
     BlockHeader,
     hashBlock,
@@ -10,6 +9,7 @@ import {
     calculateMerkle
 } from '../src/core'
 
+/*
 debug(encodeBlockHeader({
     header: {
         previousBlockHash: null,
@@ -25,13 +25,14 @@ debug(calculateMerkle([<Transaction>{
     data:{
         from: "asd",
         to: "asd",
-        type: "coinbase",
+        type: TransactionType.CoinBase,
         amount: 100,
+        none:12,
         payload: ""
     },
     signature: "asd"
 }]))
-
+*/
 function debug(x) {
     if (x.subscribe){
         x.subscribe((a) => console.log(a))
