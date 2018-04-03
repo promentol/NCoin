@@ -1,11 +1,12 @@
-///<reference path="../node_modules/@types/node/index.d.ts" />
+///<reference path="../../node_modules/@types/node/index.d.ts" />
+
 import events = require('events');
 
 import {
     signBlock,
     calculateMerkle,
     createBlock
-} from './core'
+} from '../core'
 
 export class Miner extends events.EventEmitter {
     timeout: any;
@@ -17,6 +18,6 @@ export class Miner extends events.EventEmitter {
     }
 
     private startMining() {
-        createBlock().subscribe(() => eraseTransactionToPool())
+        //createBlock().subscribe(() => eraseTransactionToPool())
     }
 }
