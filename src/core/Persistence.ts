@@ -3,8 +3,12 @@ import {
 } from './Transaction'
 
 import {
-    Block
+    Block, BlockType
 } from './Block'
+
+import {
+    State, initialState, createState, serializeState, applyBlockToState
+} from './State'
 
 import {
     hashTransaction,
@@ -19,6 +23,7 @@ import 'rxjs/add/observable/bindNodeCallback';
 
 import { BehaviorSubject } from 'rxjs/BehaviorSubject';
 
+const genesis: Block = require('../config/genesis.json');
 
 export default class Persistence {
 
@@ -32,13 +37,16 @@ export default class Persistence {
     private static _instance = null;
 
     private constructor() {
-
+        this.lastBlock
     }
 
     private _db: any;
 
-    public set db (db) {
+    public setDB (db) {
         this._db = db
+        return this.prepareLastBlock().map((lastBlock)=>{
+            return this.prepareState(lastBlock)
+        })
     }
     
     public getBlockByHash: (string) => Observable<Block> = Observable.bindNodeCallback((
@@ -80,4 +88,50 @@ export default class Persistence {
     public eraseTransactionToPool = () => {
         this.transactionPool.next([])
     }
+
+    public currentState: State = initialState();
+
+    public fetchState: (block: Block) => Observable<State> = Observable.bindNodeCallback((
+        block: Block,
+        callback: (error: Error, value: State) => void
+    ) => this._db.get(`state-${hashBlock(block)}`, (err, buffer) => callback(null, createState(buffer))))
+    
+    public saveState: (sate: State, block: Block) => Observable<boolean> = Observable.bindNodeCallback((
+        state: State,
+        block: Block,
+        callback: (error: Error, value: boolean) => void
+    ) => this._db.put(`state-${hashBlock(block)}`, serializeState(state), (err, buffer) => callback(null, !err && !!buffer)))
+
+    private _lastBlock: Block;
+    public get lastBlock() {
+        return this._lastBlock
+    }
+
+    private prepareLastBlock(){
+        return this.getLastBlock().map(x=>{
+            this._lastBlock = x;
+            return x;
+        }).catch(e => {
+            return this.saveBlock(genesis)
+        })
+    }
+
+    private getLastBlock: () => Observable<Block> = Observable.bindNodeCallback((
+        callback: (error: Error, value: Block) => void
+    ) => this._db.get(`lastBlock`, (err, buffer) => callback(null, buffer)))
+
+    public saveLastBlock(lastBlock) {
+        this._lastBlock = lastBlock
+        return this.writeLastBlock(lastBlock);
+    }
+
+    public prepareState: (b: Block) => {
+        //return Observable.of()
+    }
+
+    private writeLastBlock: (block: Block) => Observable<Block> = Observable.bindNodeCallback((
+        block: Block,
+        callback: (error: Error, value: Block) => void
+    ) => this._db.put(`lastBlock`, block, (err, buffer) => callback(null, buffer)))
+    
 }
