@@ -21,12 +21,11 @@ export class Miner extends events.EventEmitter {
     }
 
     public startMining() {
-        console.log('miner have started')
+        console.log('MINER HAVE BEEN STARTED')
 
         Rx
             .Observable
-            .interval(5000)
-            .do((x)=>console.log(x+'   ============================='))
+            .interval(10*60*1000)
             .switchMap(() => Persistence.Instance.transactionPool.take(1))
             .merge(Persistence.Instance.transactionPool
                 .filter((transactions) => {
@@ -40,12 +39,11 @@ export class Miner extends events.EventEmitter {
             //.do((x) => console.log(x))
             .switchMap(Actions.processBlock)
             .subscribe((block)=>{
-                console.log(`new block created`) //${Crypto.hashBlock(block)}`)
+                console.log(`new block created ${Crypto.hashBlock(block)}`)
             })
     }
 
     private simplifyTransactions(transactions: Transaction[]) {
-        console.log('simplifyTransactions')
         return Persistence.Instance.currentState.switchMap((state)=>{
             return Rx.Observable.from(transactions).reduce((acc, tx) => {
                 if(acc.newTransactions.length > 10) {

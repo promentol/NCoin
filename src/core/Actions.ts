@@ -26,13 +26,9 @@ export namespace Actions {
         Crypto.signTransaction(tx, privateKey);
         processTransaction(tx)
     }
-    var x = 0, y =0;
 
     export const createBlock = (transactionsPool: Transaction[], payload: string, minerPrivateKey): Observable<Block> => {
-        console.log(++y)
         return Persistence.Instance.lastBlock.take(1).map((lastBlock: Block)=>{
-
-            console.log("lastBlock", ++x, y)
             const transactions = [
                 createCoinbase(minerPrivateKey, payload),
                 ...prepareTransactions(transactionsPool)

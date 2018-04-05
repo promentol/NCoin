@@ -5,6 +5,7 @@ import {
     initREST
 } from './rest'
 
+import { Miner } from './miner'
 import NCoinNetwork from './network'
 
 //PROCESS ARGUMENTS
@@ -44,21 +45,17 @@ if (!Crypto.verifyPrivateKey(key)) {
 
 
 //network port
-//initialize network
 const netWorkPort = parseInt(args.p) || parseInt(args.port) || 1996
 const noBootstrap = args.nb
 
 const { bootAddresses } = require('./config/config')
 
 //rest port
-//initialize REST API
 const restPort = parseInt(args.r) || parseInt(args.rest)
 
 
-//miner
-//initialize Miner
-
-
+//miner 
+const minerModule = (args.m) || (args.mining) || (args.mine)
 
 var levelup = require('levelup')
 var leveldown = require('leveldown')
@@ -66,17 +63,20 @@ var leveldown = require('leveldown')
 // 1) Create our store
 var db = levelup(leveldown(dataDirectory))
 
+// 2) set backend for persistence
 Persistence.Instance.setDB(db).subscribe(()=>{
+
+    //initialize network
     new NCoinNetwork(netWorkPort, noBootstrap ? [] : bootAddresses)
 
+    //initialize REST API
     if (restPort) {
         initREST(restPort)
     }
+
+    //mining module
+    if (minerModule) {
+        const miner = new Miner(key, 'payload')
+        miner.startMining();
+    }
 })
-
-
-import { Miner } from './miner'
-
-const miner = new Miner(key, 'payload')
-
-miner.startMining();
