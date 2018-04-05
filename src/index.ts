@@ -1,12 +1,11 @@
 ///<reference path="../node_modules/@types/node/index.d.ts" />
 
-import * as BlockChain from './core'
+import { Crypto, Persistence } from './core'
 import {
     initREST
 } from './rest'
 
 import NCoinNetwork from './network'
-import Persistence from './core/Persistence';
 
 //PROCESS ARGUMENTS
 const parseArgs = require('minimist')
@@ -36,9 +35,9 @@ try {
 //private key
 //private key, public key initiation
 const keyDirectory = args.k || args.key
-const key = keyDirectory ? fs.readFileSync(keyDirectory) : BlockChain.generatePrivateKey()
+const key = keyDirectory ? fs.readFileSync(keyDirectory) : Crypto.generatePrivateKey()
 
-if (!BlockChain.verifyPrivateKey(key)) {
+if (!Crypto.verifyPrivateKey(key)) {
     console.error(`Not valid private key`);
     process.exit()
 }
@@ -76,4 +75,8 @@ Persistence.Instance.setDB(db).subscribe(()=>{
 })
 
 
+import { Miner } from './miner'
 
+const miner = new Miner(key, 'payload')
+
+miner.startMining();

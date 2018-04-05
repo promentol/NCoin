@@ -11,8 +11,7 @@ import {
 } from './State'
 
 import {
-    hashTransaction,
-    hashBlock
+    Crypto
 } from './Crypto'
 
 import { Observable } from 'rxjs/Observable';
@@ -27,7 +26,7 @@ import { Subject } from 'rxjs/Subject';
 
 const genesis: Block = require('../config/genesis.json');
 
-export default class Persistence {
+export class Persistence {
 
     static get Instance(): Persistence {
         if(this._instance == null) {
@@ -43,7 +42,7 @@ export default class Persistence {
             this.lastBlock.switchMap((b: Block) => {
                 return this.getState(b);
             }).subscribe((s) => {
-                console.log(`new state on block ${hashBlock(this.lastBlock.getValue())}`)
+                console.log(`new state on block ${Crypto.hashBlock(this.lastBlock.getValue())}`)
             })
 
         })
@@ -83,12 +82,12 @@ export default class Persistence {
     public saveTransaction: (tx: Transaction) => Observable<boolean> = Observable.bindNodeCallback((
         tx: Transaction,
         callback: (error: Error, value: boolean) => void
-    ) => this._db.put(`t-${hashTransaction(tx)}`, tx, (err, buffer) => callback(null, !err && !!buffer)))
+    ) => this._db.put(`t-${Crypto.hashTransaction(tx)}`, tx, (err, buffer) => callback(null, !err && !!buffer)))
 
     public writeBlock: (block: Block) => Observable<boolean> = Observable.bindNodeCallback((
         block: Block,
         callback: (error: Error, value: boolean) => void
-    ) => this._db.put(`b-${hashBlock(block)}`, block, (err, buffer) => callback(null, !err && !!buffer)))
+    ) => this._db.put(`b-${Crypto.hashBlock(block)}`, block, (err, buffer) => callback(null, !err && !!buffer)))
 
     public transactionPool: BehaviorSubject<Transaction[]> = new BehaviorSubject([]);
 
@@ -105,7 +104,7 @@ export default class Persistence {
     public fetchState: (block: Block) => Observable<State> = Observable.bindNodeCallback((
         block: Block,
         callback: (error: Error, value: State) => void
-    ) => this._db.get(`state-${hashBlock(block)}`, (err, buffer) => callback(null, createState(buffer))))
+    ) => this._db.get(`state-${Crypto.hashBlock(block)}`, (err, buffer) => callback(null, createState(buffer))))
     
     public getState(block: Block):Observable<State> {
         if(BlockType.Genensis == block.header.type) {
@@ -127,7 +126,7 @@ export default class Persistence {
         state: State,
         block: Block,
         callback: (error: Error, value: boolean) => void
-    ) => this._db.put(`state-${hashBlock(block)}`, serializeState(state), (err, buffer) => callback(null, !err && !!buffer)))
+    ) => this._db.put(`state-${Crypto.hashBlock(block)}`, serializeState(state), (err, buffer) => callback(null, !err && !!buffer)))
 
     public readonly lastBlock: BehaviorSubject<Block> = new BehaviorSubject(genesis);
     public readonly blocks: Subject<Block> = new Subject();
@@ -149,6 +148,7 @@ export default class Persistence {
 
     public saveLastBlock(lastBlock) {
         this.lastBlock.next(lastBlock)
+        this.blocks.next(lastBlock)
         return this.writeLastBlock(lastBlock);
     }
 

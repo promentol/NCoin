@@ -1,6 +1,6 @@
 const express = require('express')
 const bodyParser = require('body-parser')
-import * as BlockChain from '../core'
+import {Actions} from '../core'
 
 export function initREST(port) {
     
@@ -13,7 +13,7 @@ export function initREST(port) {
     })
 
     app.get('/blocksCount', function (req, res) {
-        BlockChain.getBlockCount().subscribe((blocksCount)=>{
+        Actions.getBlockCount().subscribe((blocksCount)=>{
             res.send({
                 blocksCount
             })
@@ -21,7 +21,7 @@ export function initREST(port) {
     })
 
     app.get('/blocks/:hash', function (req, res) {
-        BlockChain.getBlock(req.params.hash).subscribe((blocksCount) => {
+        Actions.getBlock(req.params.hash).subscribe((blocksCount) => {
             res.send({
                 blocksCount
             })
@@ -29,7 +29,7 @@ export function initREST(port) {
     })
 
     app.get('/transactions/:hash', function (req, res) {
-        BlockChain.getTransaction(req.params.hash).subscribe((tx) => {
+        Actions.getTransaction(req.params.hash).subscribe((tx) => {
             res.send(tx)
         })
     })

@@ -8,7 +8,7 @@ import {
     BlockType
 } from './Block'
 
-import * as Crypto from './Crypto'
+import { Crypto } from './Crypto'
 
 import * as Immutable from 'immutable'
 

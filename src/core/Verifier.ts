@@ -14,7 +14,7 @@ import {
     initialState
 } from './State'
 
-import * as Crypto from './Crypto'
+import { Crypto } from './Crypto'
 
 import { Observable } from 'rxjs/Observable';
 import 'rxjs/add/observable/of';
@@ -34,7 +34,7 @@ import 'rxjs/add/operator/reduce';
 import 'rxjs/add/operator/catch'; 
 
 
-import Persistence from './Persistence'
+import {Persistence} from './Persistence'
 
 const genesis: Block = require('../config/genesis.json');
 
@@ -47,7 +47,7 @@ export const verifyBlock = (block: Block) => {
         return x && Crypto.calculateMerkle(block.transactions) == block.header.merkleRoot;
     }).switchMap((x) => {
         if (x) {
-            return verifyBlockTransactions(block)
+            return verifyBlockTransactions(block).take(1)
         } else {
             return Observable.of(false)
         }
