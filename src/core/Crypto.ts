@@ -26,7 +26,7 @@ export namespace Crypto {
     }
 
     export const generatePublicKey = (privKey) => {
-        return secp256k1.publicKeyCreate(privKey)
+        return secp256k1.publicKeyCreate(privKey).toString('hex')
     }
 
     export function hash(data) {
@@ -45,20 +45,20 @@ export namespace Crypto {
     }
 
     export const signBlock = (block: Block, privateKey): Block => {
-        block.singature = secp256k1.sign(hash(encodeBlockHeader(block)), privateKey)
+        block.singature = secp256k1.sign(hash(encodeBlockHeader(block)), privateKey).toString('hex')
         return block
     }
 
     export const verifySignatureOfBlock = (block: Block, publicKey) => {
-        return secp256k1.verify(hash(encodeBlockHeader(block)), block.singature, publicKey);
+        return secp256k1.verify(hash(encodeBlockHeader(block)), Buffer.from(block.singature, 'hex'), Buffer.from(publicKey, 'hex'));
     }
 
     export const verifyTransactionSignature = (tx: Transaction, publicKey) => {
-        return secp256k1.verify(hashTransaction(tx), Buffer.from(tx.signature), publicKey)
+        return secp256k1.verify(hashTransaction(tx), Buffer.from(tx.signature, 'hex'), Buffer.from(publicKey, 'hex'));
     }
 
     export const signTransaction = (transaction: Transaction, privateKey): Transaction => {
-        transaction.signature = secp256k1.sign(hashTransaction(transaction), privateKey)
+        transaction.signature = secp256k1.sign(hashTransaction(transaction).toString('hex'));
         return transaction;
     }
 

@@ -4,6 +4,7 @@
         "depth": 0,
         "nonce": 0,
         "merkleRoot": null,
+        "type": 0,
         "miner": null,
         "authorities": ["asd", "aaaa"]
     },

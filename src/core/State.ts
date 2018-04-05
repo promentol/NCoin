@@ -18,9 +18,30 @@ import 'rxjs/add/observable/from';
 
 const genesis: Block = require('../config/genesis.json');
 
-export interface State extends Immutable.Map<string, Balance> {
-    
-}
+export class State {
+    private a: Immutable.Map<string, string>;
+    constructor(x) {
+        if(x instanceof Immutable.Map) {
+            this.a = x;
+        }
+    }
+    serializeBalance(x: Balance) {
+        return JSON.stringify(x);
+    }
+    deserializeBalance(x: string):Balance {
+        return x && <Balance>JSON.parse(x);
+    }
+    toJS(){
+        return this.a.toJS();
+    }
+    get(x) {
+        return this.deserializeBalance(this.a.get(x))
+    }
+    set(x, y:Balance) {
+        return new State(this.a.set(x, this.serializeBalance(y)))
+    }
+
+} 
 
 export interface Balance {
     value: number;
@@ -29,11 +50,11 @@ export interface Balance {
 
 
 export const initialState = (): State => {
-    return Immutable.Map()
+    return new State(Immutable.Map())
 }
 
 export const createState = (x: {}): State => {
-    return Immutable.fromJS(x)
+    return new State(Immutable.fromJS(x))
 }
 
 export const serializeState = (state: State) => {
@@ -58,8 +79,8 @@ export const applyBlockToState = (previousState: State, block: Block) => {
 
 export const applyTransactionToState = (state: State, tx: Transaction) => {
     if (tx.data.from) {
-        const accountA = state.get(tx.data.from)
-        const accountB = state.get(tx.data.to)
+        const accountA = state.get(tx.data.from) || defaultBalance()
+        const accountB = state.get(tx.data.to) || defaultBalance()
         if (accountA.nonce > tx.data.nonce) {
             throw new Error("invalid nonce")
         }
@@ -74,10 +95,17 @@ export const applyTransactionToState = (state: State, tx: Transaction) => {
             value: accountB.value + tx.data.amount
         })
     } else {
-        const accountB = state.get(tx.data.to)
+        const accountB = state.get(tx.data.to) || defaultBalance()
         return state.set(tx.data.to, {
             nonce: tx.data.nonce,
             value: accountB.value + tx.data.amount
         })
+    }
+}
+
+const defaultBalance = () => {
+    return {
+        nonce: 0,
+        value: 0
     }
 }

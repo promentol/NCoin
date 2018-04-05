@@ -7,7 +7,8 @@ import {
     Crypto,
     Persistence,
     Transaction,
-    TransactionType
+    TransactionType,
+    Block
 } from '../core'
 
 import * as Rx from 'rxjs'
@@ -25,7 +26,7 @@ export class Miner extends events.EventEmitter {
 
         Rx
             .Observable
-            .interval(10*60*1000)
+            .interval(10*1000)//*10)
             .switchMap(() => Persistence.Instance.transactionPool.take(1))
             .merge(Persistence.Instance.transactionPool
                 .filter((transactions) => {
@@ -36,15 +37,14 @@ export class Miner extends events.EventEmitter {
             .switchMap((transactions)=>{
                 return Actions.createBlock(transactions, this.payload, this.privateKey)
             })
-            //.do((x) => console.log(x))
             .switchMap(Actions.processBlock)
-            .subscribe((block)=>{
+            .subscribe((block: Block)=>{
                 console.log(`new block created ${Crypto.hashBlock(block)}`)
             })
     }
 
     private simplifyTransactions(transactions: Transaction[]) {
-        return Persistence.Instance.currentState.switchMap((state)=>{
+        return Persistence.Instance.currentState.take(1).switchMap((state)=>{
             return Rx.Observable.from(transactions).reduce((acc, tx) => {
                 if(acc.newTransactions.length > 10) {
                     return acc

@@ -63,7 +63,15 @@ var leveldown = require('leveldown')
 // 1) Create our store
 var db = levelup(leveldown(dataDirectory))
 
+db.createReadStream({
+    keys: true, 
+    values: true
+}).on('data', function (data) {
+    console.log('key=', data.key.toString())
+})
+
 // 2) set backend for persistence
+
 Persistence.Instance.setDB(db).subscribe(()=>{
 
     //initialize network

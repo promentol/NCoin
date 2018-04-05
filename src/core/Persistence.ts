@@ -39,10 +39,12 @@ export class Persistence {
 
     private constructor() {
         this.dbSubject.subscribe((db)=>{
+            console.log('new db')
             this.lastBlock.switchMap((b: Block) => {
                 return this.getState(b);
             }).subscribe((s) => {
-                console.log(`new state on block ${Crypto.hashBlock(this.lastBlock.getValue())}`)
+                this.currentState.next(s)
+                console.log(s, `new state on block ${Crypto.hashBlock(this.lastBlock.getValue())}`)
             })
 
         })
@@ -62,7 +64,7 @@ export class Persistence {
     public getBlockByHash: (string) => Observable<Block> = Observable.bindNodeCallback((
         blockHash: string,
         callback: (error: Error, buffer: Block) => void
-    ) => this._db.get(`b-${blockHash}`, callback))
+    ) => this._db.get(`b-${blockHash}`, helperCallback(callback)))
 
     public checkBlockByHash: (string) => Observable<boolean> = Observable.bindNodeCallback((
         blockHash: string,
@@ -72,7 +74,7 @@ export class Persistence {
     public getTransactionByHash: (string) => Observable<Transaction> = Observable.bindNodeCallback((
         transactionHash: string,
         callback: (error: Error, buffer: Transaction) => void
-    ) => this._db.get(`t-${transactionHash}`, callback))
+    ) => this._db.get(`t-${transactionHash}`, helperCallback(callback)))
 
     public checkTransactionByHash: (string) => Observable<boolean> = Observable.bindNodeCallback((
         transactionHash: string,
@@ -82,12 +84,12 @@ export class Persistence {
     public saveTransaction: (tx: Transaction) => Observable<boolean> = Observable.bindNodeCallback((
         tx: Transaction,
         callback: (error: Error, value: boolean) => void
-    ) => this._db.put(`t-${Crypto.hashTransaction(tx)}`, tx, (err, buffer) => callback(null, !err && !!buffer)))
+    ) => this._db.put(`t-${Crypto.hashTransaction(tx)}`, JSON.stringify(tx), (err, buffer) => callback(null, !err && !!buffer)))
 
     public writeBlock: (block: Block) => Observable<boolean> = Observable.bindNodeCallback((
         block: Block,
         callback: (error: Error, value: boolean) => void
-    ) => this._db.put(`b-${Crypto.hashBlock(block)}`, block, (err, buffer) => callback(null, !err && !!buffer)))
+    ) => this._db.put(`b-${Crypto.hashBlock(block)}`, JSON.stringify(block), (err, buffer) => callback(null, !err && !!buffer)))
 
     public transactionPool: BehaviorSubject<Transaction[]> = new BehaviorSubject([]);
 
@@ -104,13 +106,16 @@ export class Persistence {
     public fetchState: (block: Block) => Observable<State> = Observable.bindNodeCallback((
         block: Block,
         callback: (error: Error, value: State) => void
-    ) => this._db.get(`state-${Crypto.hashBlock(block)}`, (err, buffer) => callback(null, createState(buffer))))
+    ) => this._db.get(`state-${Crypto.hashBlock(block)}`, (err, buffer) => callback(null, buffer && createState(JSON.parse(buffer.toString())))))
     
     public getState(block: Block):Observable<State> {
         if(BlockType.Genensis == block.header.type) {
             return Observable.of(initialState())
         } else {
-            return this.fetchState(block).catch(e=>{
+            return this.fetchState(block).switchMap((state)=>{
+                if (state) {
+                    return Observable.of(state)
+                }
                 return this.getBlockByHash(block.header.previousBlockHash).switchMap((previousBlock: Block) => {
                     return this.getState(previousBlock)
                 }).switchMap((previousState) => {
@@ -126,40 +131,59 @@ export class Persistence {
         state: State,
         block: Block,
         callback: (error: Error, value: boolean) => void
-    ) => this._db.put(`state-${Crypto.hashBlock(block)}`, serializeState(state), (err, buffer) => callback(null, !err && !!buffer)))
+    ) => this._db.put(`state-${Crypto.hashBlock(block)}`, JSON.stringify(serializeState(state)), (err, buffer) => callback(null, !err && !!buffer)))
 
     public readonly lastBlock: BehaviorSubject<Block> = new BehaviorSubject(genesis);
     public readonly blocks: Subject<Block> = new Subject();
 
     private prepareLastBlock(){
-        return this.getLastBlock().map(x=>{
-            if(x) {
-                this.lastBlock.next(x)
-            } else {}
-            return x;
-        }).catch(e => {
-            return this.saveLastBlock(genesis)
+        return this.writeBlock(genesis).switchMap(()=>{
+            return this.getLastBlock().map(x => {
+                if (x) {
+                    this.lastBlock.next(x)
+                }
+                return x;
+            }).catch(e => {
+                return this.saveLastBlock(genesis)
+            })
         })
     }
 
     private getLastBlock: () => Observable<Block> = Observable.bindNodeCallback((
         callback: (error: Error, value: Block) => void
-    ) => this._db.get(`lastBlock`, (err, buffer) => callback(null, buffer)))
+    ) => this._db.get(`lastBlock`, helperCallback(callback)))
 
     public saveLastBlock(lastBlock) {
-        this.lastBlock.next(lastBlock)
-        this.blocks.next(lastBlock)
-        return this.writeLastBlock(lastBlock);
+        return this.writeLastBlock(lastBlock).switchMap(() => {
+            return this.saveBlock(lastBlock)
+        }).map((x)=>{
+            this.lastBlock.next(lastBlock)
+            return lastBlock
+        });
     }
 
     public saveBlock(block) {
-        this.blocks.next(block)
-        return this.writeBlock(block)
+        return this.writeBlock(block).map(()=>{
+            this.blocks.next(block)
+            return block
+        })
     }
 
     private writeLastBlock: (block: Block) => Observable<Block> = Observable.bindNodeCallback((
         block: Block,
         callback: (error: Error, value: Block) => void
-    ) => this._db.put(`lastBlock`, block, (err, buffer) => callback(null, buffer)))
+    ) => this._db.put(`lastBlock`, JSON.stringify(block), (err, buffer) => {
+        callback(null, buffer)
+    }))
     
+}
+
+const helperCallback = (cb) => {
+    return (err, buffer)=>{
+        if(err) {
+            cb(err)
+        } else {
+            cb(null, JSON.parse(buffer))
+        }
+    }
 }

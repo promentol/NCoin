@@ -56,7 +56,7 @@ export namespace Actions {
     export const createCoinbase = (privateKey, payload: string) => {
         return <Transaction>{
             data: {
-                to: Crypto.generatePublicKey(privateKey),
+                to: Crypto.generatePublicKey(privateKey).toString('hex'),
                 type: TransactionType.CoinBase,
                 amount: 100,
                 payload,
@@ -79,14 +79,14 @@ export namespace Actions {
         Persistence.Instance.addTransactionToPool(tx)
     }
 
-    export const processBlock = (block: Block) => {
-        return Persistence.Instance.lastBlock.take(1).map((lastBlock: Block) => {
+    export const processBlock = (block: Block): Observable<Block> => {
+        return Persistence.Instance.lastBlock.take(1).switchMap((lastBlock: Block) => {
             if(Crypto.hashBlock(lastBlock) == block.header.previousBlockHash) {
-                Persistence.Instance.saveLastBlock(block);
+                console.log('saving new block')
+                return Persistence.Instance.saveLastBlock(block).take(1);
             } else {
-                Persistence.Instance.saveBlock(block);
+                return Persistence.Instance.saveBlock(block).take(1);
             }
-            return lastBlock 
         }) 
         /*
         return Persistence.Instance.lastBlock.map((lastBlock)=>{
