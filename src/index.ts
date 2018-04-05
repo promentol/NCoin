@@ -6,6 +6,7 @@ import {
 } from './rest'
 
 import NCoinNetwork from './network'
+import Persistence from './core/Persistence';
 
 //PROCESS ARGUMENTS
 const parseArgs = require('minimist')
@@ -50,15 +51,29 @@ const noBootstrap = args.nb
 
 const { bootAddresses } = require('./config/config')
 
-new NCoinNetwork(netWorkPort, noBootstrap ? [] : bootAddresses)
-
 //rest port
 //initialize REST API
 const restPort = parseInt(args.r) || parseInt(args.rest)
-if (restPort) {
-    initREST(restPort)
-}
+
 
 //miner
 //initialize Miner
+
+
+
+var levelup = require('levelup')
+var leveldown = require('leveldown')
+
+// 1) Create our store
+var db = levelup(leveldown(dataDirectory))
+
+Persistence.Instance.setDB(db).subscribe(()=>{
+    new NCoinNetwork(netWorkPort, noBootstrap ? [] : bootAddresses)
+
+    if (restPort) {
+        initREST(restPort)
+    }
+})
+
+
 

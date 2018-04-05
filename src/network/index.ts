@@ -2,8 +2,9 @@ import * as net from 'net'
 import { Subject } from "rxjs/Subject";
 import { Observable } from "rxjs/Observable"
 import 'rxjs/add/operator/map';
-import 'rxjs/add/operator/multicast'; 
+import 'rxjs/add/operator/multicast';
 import 'rxjs/add/operator/filter';
+import 'rxjs/add/operator/switchMap';
 import { checkServerIdentity } from 'tls';
 
 declare class Map<T> extends NodeIterator {

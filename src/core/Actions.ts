@@ -7,6 +7,7 @@ import * as Crypto from './Crypto'
 import { Transaction, TransactionType } from './Transaction'
 
 import { Block, BlockHeader, BlockType } from './Block'
+import Persistence from './Persistence';
 
 
 export const getBlockCount = () => {
@@ -20,31 +21,35 @@ export const getTransaction = (txHash) => {
     return Persistent.Instance.getTransactionByHash(txHash)
 }
 
-/*
-export const createTransaction = (tx: Transaction): Transaction => {
-    return 
+export const createTransaction = (tx: Transaction, privateKey) => {
+    tx.data.nonce = generateNonce(tx.data.from); 
+    Crypto.signTransaction(tx, privateKey);
+    this.processBlock(tx)
 }
-*/
 
 export const createBlock = (transactionsPool: Transaction[], payload: string, minerPrivateKey): Block  => {
 
     const transactions = [
         createCoinbase(minerPrivateKey, payload),
-        ...transactionsList
+        ...prepareTransactions(transactionsPool)
     ];
-    const header;
+    const header = {
+        previousBlockHash: "Persistent.Instance.getCurrent",
+        depth: 0,
+        type: BlockType.Usual,
+        merkleRoot: Crypto.calculateMerkle(transactions),
+        payload
+    };
     const block = <Block>{
-        header: {
-            previousBlockHash: "Persistent.Instance.getCurrent",
-            depth: 0,
-            type: BlockType.Usual,
-            merkleRoot: Crypto.calculateMerkle(transactions),
-            payload
-        },
+        header,
         transactions
     }
     Crypto.signBlock(block, minerPrivateKey)
     return processBlock(block)
+}
+
+const prepareTransactions = (transactionsPool: Transaction[]) => {
+    return []
 }
 
 export const createCoinbase = (privateKey, payload: string)=>{
@@ -60,22 +65,27 @@ export const createCoinbase = (privateKey, payload: string)=>{
 }
 
 export const acceptTransaction = () => {
-
+    //
 }
 export const acceptBlock = () => {
-
+    //verifyBlock
 }
 
 const generateNonce = (user: string) => {
-    //query all blocks until to get a noce
+    return Persistence.Instance.currentState.getValue().get(user).nonce + 1;
 }
 export const processTransaction = (tx: Transaction) => {
-    if (verifyTransactionSignature(tx) )
-    // 
+    Persistence.Instance.addTransactionToPool(tx)
 }
 
 
 export const processBlock = (block: Block) => {
+    /*
+    return Persistence.Instance.lastBlock.map((lastBlock)=>{
+        if()
+    })
+    if(block.header.depth)
+    Persistence.Instance.saveBlock(block);
     return verifyBlock(block).switchMap((x) => {
 
         ///Last Block logic
@@ -85,4 +95,6 @@ export const processBlock = (block: Block) => {
             throw new Error("invalid block")
         }
     })
-}*/
+    */
+   return block
+}

@@ -35,11 +35,11 @@ export function hash(data) {
 }
 
 export const hashBlock = (block: Block) => {
-    return hash(encodeBlockHeader(block));
+    return hash(encodeBlockHeader(block)).toString('hex');
 }
 
 export const hashTransaction = (tx: Transaction) => {
-    return hash(encodeTransaction(tx));
+    return hash(encodeTransaction(tx)).toString('hex');
 }
 
 export const signBlock = (block: Block, privateKey): Block => {
