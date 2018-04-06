@@ -6,7 +6,7 @@ import 'rxjs/add/operator/multicast';
 import 'rxjs/add/operator/filter';
 import 'rxjs/add/operator/switchMap';
 import { checkServerIdentity } from 'tls';
-import { Persistence, Crypto } from '../core';
+import { Persistence, Crypto, Transaction, Block } from '../core';
 
 declare class Map<T> extends NodeIterator {
     set(key, value)
@@ -89,6 +89,12 @@ export default class NCoinNetwork {
         })
 
         //send getblock message
+        Persistence.Instance.lastBlock.take(1).subscribe((block)=>{
+            const x = new NCoinGetBlockMessage(Crypto.hashBlock(block))
+            this.addresses.forEach((con: NCoinConnection) => {
+                con.sendData(x.payloadBuffer)
+            });
+        })
 
         //Handle Hello Message
         this.messages
@@ -110,25 +116,88 @@ export default class NCoinNetwork {
                 }
             })
 
-        //TODO
         //Handle INV message
         this.messages
-            .subscribe(({ connection, message }) => {
+            .filter((x) => x.message instanceof NCoinInvMessage)
+            .switchMap(({ connection, message }) => {
                 console.log(message)
                 if (message instanceof NCoinInvMessage) {
-                    message.data.forEach((inv: INV)=>{
-                        console.log('inv', inv)
+                    return Observable.from(message.data).map((inv: INV)=>{
+                        if (inv.type == INV_TYPE.INV_TRANSACTION) {
+                            return Persistence.Instance
+                                .checkTransactionByHash(inv.hash)
+                                .filter((x)=>!x)
+                                .do((x) => {
+                                    const getDataMessage = new NCoinGetDataMessage(inv)
+                                    connection.sendData(getDataMessage.payloadBuffer)
+                                })
+                        } else {
+                            return Persistence.Instance
+                                .checkBlockByHash(inv.hash)
+                                .filter((x) => !x)
+                                .do((x) => {
+                                    const getDataMessage = new NCoinGetDataMessage(inv)
+                                    connection.sendData(getDataMessage.payloadBuffer)
+                                })
+                        }
                     })
                 }
+            }).subscribe(()=>{
+                console.log('process INV')
             })
 
         //handle getblock message
         //handle getdata message
+        this.messages
+            .filter((x) => x.message instanceof NCoinInvMessage)
+            .switchMap(({connection, message}) => {
+                if (message instanceof NCoinGetDataMessage) {
+                    if(message.data.type == INV_TYPE.INV_BLOCK) {
+                        return Persistence.Instance
+                            .getBlockByHash(message.data.hash)
+                            .filter((x) => !x)
+                            .do((x) => {
+                                const blockMessage = new NCoinBlockMessage(message.data)
+                                connection.sendData(blockMessage.payloadBuffer)
+                            })
+                            .map((x)=>!!x)
+                            .catch(e=>Observable.of(false))
+                    } else {
+                        return Persistence.Instance
+                            .getTransactionByHash(message.data.hash)
+                            .filter((x) => !x)
+                            .do((x) => {
+                                const txMessage = new NCoinTxMessage(message.data)
+                                connection.sendData(txMessage.payloadBuffer)
+                            })
+                            .map((x) => !!x)
+                            .catch(e => Observable.of(false))
+                    }
+                }
+            })
+            .subscribe(()=>{
+                console.log('get data message')
+            })
+
         //handle tx message
         //handle bx message
         
 
         //Listen new transactions, send inv message
+        Persistence.Instance.transactions.map((tx) => {
+            return {
+                type: INV_TYPE.INV_TRANSACTION,
+                hash: Crypto.hashTransaction(tx)
+            }
+        }).map((x) => {
+            return new NCoinInvMessage([x])
+        }).subscribe((invMessage) => {
+            this.addresses.forEach((con: NCoinConnection) => {
+                console.log(con)
+                con.sendData(invMessage.payloadBuffer)
+            });
+        })
+
         //Listen new blocks, send inv message
         Persistence.Instance.blocks.map((block)=>{
             return {
@@ -138,8 +207,6 @@ export default class NCoinNetwork {
         }).map((x)=>{
             return new NCoinInvMessage([x])
         }).subscribe((invMessage)=>{
-            console.log('========================', invMessage)
-            console.log(this.addresses)
             this.addresses.forEach((con: NCoinConnection) => {
                 console.log(con)
                 con.sendData(invMessage.payloadBuffer)
@@ -303,6 +370,48 @@ class NCoinGetDataMessage extends NCoinMessage {
     constructor(data) {
         super()
         this._type = NCoinGetDataMessage.TYPE
+        this.data = data;
+    }
+    get payload(): any {
+        return this.data;
+    }
+
+}
+
+class NCoinGetBlockMessage extends NCoinMessage {
+    static TYPE = 'getdata';
+    public data: INV;
+    constructor(data) {
+        super()
+        this._type = NCoinGetBlockMessage.TYPE
+        this.data = data;
+    }
+    get payload(): any {
+        return this.data;
+    }
+
+}
+
+class NCoinBlockMessage extends NCoinMessage {
+    static TYPE = 'block';
+    public data: Block;
+    constructor(data) {
+        super()
+        this._type = NCoinBlockMessage.TYPE
+        this.data = data;
+    }
+    get payload(): any {
+        return this.data;
+    }
+
+}
+
+class NCoinTxMessage extends NCoinMessage {
+    static TYPE = 'tx';
+    public data: Transaction;
+    constructor(data) {
+        super()
+        this._type = NCoinTxMessage.TYPE
         this.data = data;
     }
     get payload(): any {

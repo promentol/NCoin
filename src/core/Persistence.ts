@@ -92,9 +92,11 @@ export class Persistence {
     ) => this._db.put(`b-${Crypto.hashBlock(block)}`, JSON.stringify(block), (err, buffer) => callback(null, !err && !!buffer)))
 
     public transactionPool: BehaviorSubject<Transaction[]> = new BehaviorSubject([]);
+    public transactions: Subject<Transaction> = new Subject()
 
     public addTransactionToPool = (tx: Transaction) => {
         this.transactionPool.next([...this.transactionPool.getValue(), tx])
+        this.transactions.next(tx)
     };
 
     public eraseTransactionToPool = () => {
