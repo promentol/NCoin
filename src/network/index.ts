@@ -6,6 +6,7 @@ import 'rxjs/add/operator/multicast';
 import 'rxjs/add/operator/filter';
 import 'rxjs/add/operator/switchMap';
 import { checkServerIdentity } from 'tls';
+import { Persistence, Crypto } from '../core';
 
 declare class Map<T> extends NodeIterator {
     set(key, value)
@@ -70,10 +71,11 @@ enum INV_TYPE {
 
 export default class NCoinNetwork {
     mainConnection: NCoinServerConnection;
-    constructor(myPort, bootAddresses: Address[]) {
+    constructor(private myPort, bootAddresses: Address[]) {
         const server = net.createServer((socket)=>{
-            this.mainConnection = new NCoinServerConnection(socket)
-            this.processConnection(this.mainConnection)
+            console.log(' !=!=!=!=!=!  new conection !=!=!=!=!=!')
+            const con = new NCoinServerConnection(socket)
+            this.processConnection(con)
         })
         server.listen(myPort, ()=>{
             console.log(`TCP SERVER STARTED ON PORT ${myPort}`)
@@ -94,7 +96,7 @@ export default class NCoinNetwork {
                 if (message instanceof NCoinHelloMessage) {
                     const addressMessage = new NCoinAddressMessage(this.getAddresses())
                     connection.sendData(addressMessage.payloadBuffer)
-                    this.addresses.set(message.data, connection)
+                    this.addresses.set(`${connection.address}:${message.data.port}`, connection)
                 }
             })
 
@@ -108,18 +110,15 @@ export default class NCoinNetwork {
                 }
             })
 
+        //TODO
         //Handle INV message
         this.messages
-            .filter(({ message }) => message instanceof NCoinInvMessage)
-            .switchMap(({ connection, message }) => {
+            .subscribe(({ connection, message }) => {
+                console.log(message)
                 if (message instanceof NCoinInvMessage) {
-                    return Observable.from(message.data)
-                }
-            }).map((inv: INV)=>{
-                if(inv.type == INV_TYPE.INV_BLOCK) {
-                    return {inv, x: true}
-                } else if (inv.type == INV_TYPE.INV_TRANSACTION) {
-                    return 
+                    message.data.forEach((inv: INV)=>{
+                        console.log('inv', inv)
+                    })
                 }
             })
 
@@ -131,6 +130,21 @@ export default class NCoinNetwork {
 
         //Listen new transactions, send inv message
         //Listen new blocks, send inv message
+        Persistence.Instance.blocks.map((block)=>{
+            return {
+                type: INV_TYPE.INV_BLOCK,
+                hash: Crypto.hashBlock(block)
+            }
+        }).map((x)=>{
+            return new NCoinInvMessage([x])
+        }).subscribe((invMessage)=>{
+            console.log('========================', invMessage)
+            console.log(this.addresses)
+            this.addresses.forEach((con: NCoinConnection) => {
+                console.log(con)
+                con.sendData(invMessage.payloadBuffer)
+            });
+        })
 
 
         //setup ping and address table, remove
@@ -150,6 +164,10 @@ export default class NCoinNetwork {
     processAddress(address: Address) {
         if(!this.addresses.has(address)){
             const n = new NCoinClientConnection(address)
+            const hello = new NCoinHelloMessage({
+                port: this.myPort
+            })
+            n.sendData(hello.payloadBuffer)
             this.addresses.set(address, n)// = n
             this.processConnection(n)
         }
@@ -171,6 +189,7 @@ export default class NCoinNetwork {
 
 abstract class NCoinConnection  {
     abstract sendData(m: Buffer) 
+    abstract get address()
     public messages: Subject<Buffer> = new Subject();
 }
 
@@ -181,6 +200,9 @@ class NCoinServerConnection extends NCoinConnection {
         this.socket.on("data", (data)=>{
             this.messages.next(data)
         })
+        this.socket.on("error", (e) => {
+            console.log(e)
+        })
         this.socket.on("close", (data)=>{
             this.messages.complete()
         })
@@ -188,6 +210,12 @@ class NCoinServerConnection extends NCoinConnection {
     socket: any;
     sendData(m: Buffer){
         this.socket.write(m)
+    }
+    get address() {
+        if (this.socket.remoteAddress.substr(0, 7) == "::ffff:") {
+            return this.socket.remoteAddress.substr(7)
+        }
+        return this.socket.remoteAddress
     }
 }
 
@@ -200,7 +228,7 @@ class NCoinClientConnection extends NCoinConnection {
             this.messages.next(data)
         })
         this.client.on("error", (e) => {
-            //console.log(e)
+            console.log(e)
         })
         this.client.on("close", () => {
             this.messages.complete()
@@ -209,6 +237,9 @@ class NCoinClientConnection extends NCoinConnection {
     client: any;
     sendData(m: Buffer) {
         this.client.write(m)
+    }
+    get address() {
+        return ''
     }
 }
 
