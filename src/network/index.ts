@@ -129,17 +129,14 @@ export default class NCoinNetwork {
                         if (inv.type == INV_TYPE.INV_TRANSACTION) {
                             return Persistence.Instance
                                 .checkTransactionByHash(inv.hash)
-                                .do((x)=>console.log(x))
                                 .filter((x)=>!x)
                                 .do((x) => {
                                     const getDataMessage = new NCoinGetDataMessage(inv)
                                     connection.sendData(getDataMessage.payloadBuffer)
                                 })
                         } else {
-                            console.log(inv.hash)
                             return Persistence.Instance
                                 .checkBlockByHash(inv.hash)
-                                .do((x)=>console.log('asd', x))
                                 .filter((x) => !x)
                                 .do((x) => {
                                     const getDataMessage = new NCoinGetDataMessage(inv)
@@ -157,7 +154,6 @@ export default class NCoinNetwork {
             .filter((x) => x.message instanceof NCoinGetBlockMessage)
             .switchMap(({ connection, message }) => {
                 if (message instanceof NCoinGetBlockMessage) {
-                    console.log(message.data)
                     return Actions.getBlockUntill(message.data).map((blocks)=>{
                         return {
                             connection,
@@ -185,14 +181,13 @@ export default class NCoinNetwork {
         //handle getdata message
         this.messages
             .filter((x) => x.message instanceof NCoinGetDataMessage)
-            .switchMap(({connection, message}) => {
+            .mergeMap(({connection, message}) => {
                 if (message instanceof NCoinGetDataMessage) {
                     if(message.data.type == INV_TYPE.INV_BLOCK) {
                         return Persistence.Instance
                             .getBlockByHash(message.data.hash)
-                            .filter((x) => !x)
                             .do((x) => {
-                                const blockMessage = new NCoinBlockMessage(message.data)
+                                const blockMessage = new NCoinBlockMessage(x)
                                 connection.sendData(blockMessage.payloadBuffer)
                             })
                             .map((x)=>!!x)
@@ -200,9 +195,8 @@ export default class NCoinNetwork {
                     } else {
                         return Persistence.Instance
                             .getTransactionByHash(message.data.hash)
-                            .filter((x) => !x)
                             .do((x) => {
-                                const txMessage = new NCoinTxMessage(message.data)
+                                const txMessage = new NCoinTxMessage(x)
                                 connection.sendData(txMessage.payloadBuffer)
                             })
                             .map((x) => !!x)
@@ -222,7 +216,9 @@ export default class NCoinNetwork {
         //handle bx message
         this.messages
             .filter((x) => x.message instanceof NCoinBlockMessage)
-            .subscribe()
+            .subscribe(() => {
+
+            })
         
 
         //Listen new transactions, send inv message
@@ -312,6 +308,7 @@ class NCoinServerConnection extends NCoinConnection {
     constructor(socket){
         super()
         this.socket = socket
+
         this.socket
             .pipe(ndjson.parse())
             .on("data", (data)=>{
@@ -372,7 +369,6 @@ abstract class NCoinMessage {
         return this._type
     }
     static makeFromBuffer(dataBuf): NCoinMessage  {
-        console.log(dataBuf)
         const { type, data } = dataBuf //JSON.parse(dataBuf.toString())
         
         if (type == NCoinAddressMessage.TYPE) {
@@ -397,7 +393,7 @@ abstract class NCoinMessage {
             return new NCoinTxMessage(data)
         }
         if (type == NCoinBlockMessage.TYPE) {
-            return new NCoinTxMessage(data)
+            return new NCoinBlockMessage(data)
         }
         return null
     }
