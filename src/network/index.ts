@@ -1,4 +1,5 @@
 import * as net from 'net'
+import * as ndjson from 'ndjson'
 import { Subject } from "rxjs/Subject";
 import { Observable } from "rxjs/Observable"
 import 'rxjs/add/operator/map';
@@ -6,7 +7,7 @@ import 'rxjs/add/operator/multicast';
 import 'rxjs/add/operator/filter';
 import 'rxjs/add/operator/switchMap';
 import { checkServerIdentity } from 'tls';
-import { Persistence, Crypto, Transaction, Block } from '../core';
+import { Persistence, Crypto, Transaction, Block, Actions } from '../core';
 
 declare class Map<T> extends NodeIterator {
     set(key, value)
@@ -73,7 +74,6 @@ export default class NCoinNetwork {
     mainConnection: NCoinServerConnection;
     constructor(private myPort, bootAddresses: Address[]) {
         const server = net.createServer((socket)=>{
-            console.log(' !=!=!=!=!=!  new conection !=!=!=!=!=!')
             const con = new NCoinServerConnection(socket)
             this.processConnection(con)
         })
@@ -86,6 +86,10 @@ export default class NCoinNetwork {
         
         bootAddresses.forEach((address: Address)=>{
             this.processAddress(address)
+        })
+
+        this.messages.subscribe((x)=>{
+            console.log(x.message)
         })
 
         //send getblock message
@@ -120,20 +124,22 @@ export default class NCoinNetwork {
         this.messages
             .filter((x) => x.message instanceof NCoinInvMessage)
             .switchMap(({ connection, message }) => {
-                console.log(message)
                 if (message instanceof NCoinInvMessage) {
-                    return Observable.from(message.data).map((inv: INV)=>{
+                    return Observable.from(message.data).mergeMap((inv: INV)=>{
                         if (inv.type == INV_TYPE.INV_TRANSACTION) {
                             return Persistence.Instance
                                 .checkTransactionByHash(inv.hash)
+                                .do((x)=>console.log(x))
                                 .filter((x)=>!x)
                                 .do((x) => {
                                     const getDataMessage = new NCoinGetDataMessage(inv)
                                     connection.sendData(getDataMessage.payloadBuffer)
                                 })
                         } else {
+                            console.log(inv.hash)
                             return Persistence.Instance
                                 .checkBlockByHash(inv.hash)
+                                .do((x)=>console.log('asd', x))
                                 .filter((x) => !x)
                                 .do((x) => {
                                     const getDataMessage = new NCoinGetDataMessage(inv)
@@ -143,13 +149,42 @@ export default class NCoinNetwork {
                     })
                 }
             }).subscribe(()=>{
-                console.log('process INV')
+                //console.log('process INV')
             })
 
         //handle getblock message
+        this.messages
+            .filter((x) => x.message instanceof NCoinGetBlockMessage)
+            .switchMap(({ connection, message }) => {
+                if (message instanceof NCoinGetBlockMessage) {
+                    console.log(message.data)
+                    return Actions.getBlockUntill(message.data).map((blocks)=>{
+                        return {
+                            connection,
+                            blocks: blocks.map((x) => <INV>{
+                                type: INV_TYPE.INV_BLOCK,
+                                hash: x
+                            })
+                        }
+                    })
+                }
+                return Observable.of({
+                    connection,
+                    blocks: []
+                })
+            })
+            .filter(({blocks})=>blocks.length > 0)
+            .subscribe(({
+                connection,
+                blocks
+            })=>{
+                const mes = new NCoinInvMessage(blocks)
+                connection.sendData(mes.payloadBuffer)
+            })
+
         //handle getdata message
         this.messages
-            .filter((x) => x.message instanceof NCoinInvMessage)
+            .filter((x) => x.message instanceof NCoinGetDataMessage)
             .switchMap(({connection, message}) => {
                 if (message instanceof NCoinGetDataMessage) {
                     if(message.data.type == INV_TYPE.INV_BLOCK) {
@@ -176,11 +211,18 @@ export default class NCoinNetwork {
                 }
             })
             .subscribe(()=>{
-                console.log('get data message')
+                //console.log('get data message')
             })
 
         //handle tx message
+        this.messages
+            .filter((x) => x.message instanceof NCoinTxMessage)
+            .subscribe()
+
         //handle bx message
+        this.messages
+            .filter((x) => x.message instanceof NCoinBlockMessage)
+            .subscribe()
         
 
         //Listen new transactions, send inv message
@@ -193,7 +235,7 @@ export default class NCoinNetwork {
             return new NCoinInvMessage([x])
         }).subscribe((invMessage) => {
             this.addresses.forEach((con: NCoinConnection) => {
-                console.log(con)
+                //console.log(con)
                 con.sendData(invMessage.payloadBuffer)
             });
         })
@@ -254,35 +296,39 @@ export default class NCoinNetwork {
             }
         }).subscribe(
             (x)=>{ this.messages.next(x) },
-            (error) => console.log("Error"),
+            (error) => console.log(error),
             () => { address && this.addresses.delete(address) }
         )
     }
 }
 
 abstract class NCoinConnection  {
-    abstract sendData(m: Buffer) 
+    abstract sendData(m) 
     abstract get address()
-    public messages: Subject<Buffer> = new Subject();
+    public messages: Subject<string> = new Subject();
 }
 
 class NCoinServerConnection extends NCoinConnection {
     constructor(socket){
         super()
         this.socket = socket
-        this.socket.on("data", (data)=>{
-            this.messages.next(data)
-        })
+        this.socket
+            .pipe(ndjson.parse())
+            .on("data", (data)=>{
+                this.messages.next(data)
+            })
         this.socket.on("error", (e) => {
             console.log(e)
         })
         this.socket.on("close", (data)=>{
             this.messages.complete()
         })
+        this.writeStream.pipe(this.socket)
     }
     socket: any;
-    sendData(m: Buffer){
-        this.socket.write(m)
+    writeStream = ndjson.serialize();
+    sendData(m) {
+        this.writeStream.write(m)
     }
     get address() {
         if (this.socket.remoteAddress.substr(0, 7) == "::ffff:") {
@@ -297,19 +343,23 @@ class NCoinClientConnection extends NCoinConnection {
         super()
         this.client = new net.Socket();
         this.client.connect(address.port, address.url)
-        this.client.on("data", (data)=>{
-            this.messages.next(data)
-        })
+        this.client
+            .pipe(ndjson.parse())
+            .on("data", (data)=>{
+                this.messages.next(data)
+            })
         this.client.on("error", (e) => {
             console.log(e)
         })
         this.client.on("close", () => {
             this.messages.complete()
         })
+        this.writeStream.pipe(this.client)
     }
     client: any;
-    sendData(m: Buffer) {
-        this.client.write(m)
+    writeStream = ndjson.serialize();
+    sendData(m) {
+        this.writeStream.write(m)
     }
     get address() {
         return ''
@@ -321,8 +371,9 @@ abstract class NCoinMessage {
     public get type() {
         return this._type
     }
-    static makeFromBuffer(dataBuf: Buffer): NCoinMessage  {
-        const { type, data } = JSON.parse(dataBuf.toString())
+    static makeFromBuffer(dataBuf): NCoinMessage  {
+        console.log(dataBuf)
+        const { type, data } = dataBuf //JSON.parse(dataBuf.toString())
         
         if (type == NCoinAddressMessage.TYPE) {
             return new NCoinAddressMessage(data)
@@ -333,13 +384,28 @@ abstract class NCoinMessage {
         if (type == NCoinInvMessage.TYPE) {
             return new NCoinInvMessage(data)
         }
+        if (type == NCoinGetDataMessage.TYPE) {
+            return new NCoinGetDataMessage(data)
+        }
+        if (type == NCoinGetBlockMessage.TYPE) {
+            return new NCoinGetBlockMessage(data)
+        }
+        if (type == NCoinPingMessage.TYPE) {
+            return new NCoinPingMessage()
+        }
+        if (type == NCoinTxMessage.TYPE) {
+            return new NCoinTxMessage(data)
+        }
+        if (type == NCoinBlockMessage.TYPE) {
+            return new NCoinTxMessage(data)
+        }
         return null
     }
-    public get payloadBuffer(): Buffer {
-        return Buffer.from(JSON.stringify({
+    public get payloadBuffer() {
+        return {
             type: this.type,
             data: this.payload
-        }))
+        }
     }
     protected abstract get payload();
 }
@@ -385,7 +451,7 @@ class NCoinGetDataMessage extends NCoinMessage {
 }
 
 class NCoinGetBlockMessage extends NCoinMessage {
-    static TYPE = 'getdata';
+    static TYPE = 'getblock';
     public data: INV;
     constructor(data) {
         super()

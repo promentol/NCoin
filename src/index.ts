@@ -67,7 +67,7 @@ db.createReadStream({
     keys: true, 
     values: true
 }).on('data', function (data) {
-    console.log('key=', data.key.toString())
+    //console.log('key=', data.key.toString())
 })
 
 // 2) set backend for persistence

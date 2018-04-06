@@ -2,12 +2,25 @@ import {
     Transaction,
     TransactionType,
     Block,
+    Persistence,
     BlockHeader,
-    hashBlock,
+    Actions,
     encodeBlockHeader,
     encodeTransaction,
-    calculateMerkle
 } from '../src/core'
+
+var levelup = require('levelup')
+var leveldown = require('leveldown')
+
+// 1) Create our store
+var db = levelup(leveldown('./data'))
+
+
+Persistence.Instance.setDB(db).subscribe(() => {
+    Actions.getBlockUntill('6319dabd2040e9f24f7fb09876c5e4b9797ad96661f5b3be8275b8c2c38707dd').subscribe((x) => {
+        console.log(x)
+    })
+})
 
 /*
 debug(encodeBlockHeader({

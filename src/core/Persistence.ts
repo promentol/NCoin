@@ -20,6 +20,9 @@ import 'rxjs/add/observable/from';
 import 'rxjs/add/observable/merge';
 import 'rxjs/add/operator/catch';
 import 'rxjs/add/observable/bindNodeCallback';
+import 'rxjs/add/operator/map';
+import 'rxjs/add/operator/switchMap';
+import 'rxjs/add/operator/take';
 
 import { BehaviorSubject } from 'rxjs/BehaviorSubject';
 import { Subject } from 'rxjs/Subject';
@@ -69,7 +72,10 @@ export class Persistence {
     public checkBlockByHash: (string) => Observable<boolean> = Observable.bindNodeCallback((
         blockHash: string,
         callback: (error: Error, value: boolean) => void
-    ) => this._db.get(`b-${blockHash}`, (err, buffer) => callback(null, !err && !!buffer)))
+    ) => this._db.get(`b-${blockHash}`, (err, buffer) => {
+        //console.log(err, buffer)
+        callback(null, !err && !!buffer)
+    }))
 
     public getTransactionByHash: (string) => Observable<Transaction> = Observable.bindNodeCallback((
         transactionHash: string,
@@ -79,7 +85,10 @@ export class Persistence {
     public checkTransactionByHash: (string) => Observable<boolean> = Observable.bindNodeCallback((
         transactionHash: string,
         callback: (error: Error, value: boolean) => void
-    ) => this._db.get(`t-${transactionHash}`, (err) => callback(null, !err)))
+    ) => this._db.get(`t-${transactionHash}`, (err) => {
+        //console.log('err', err)
+        callback(null, !err)
+    }))
 
     public saveTransaction: (tx: Transaction) => Observable<boolean> = Observable.bindNodeCallback((
         tx: Transaction,

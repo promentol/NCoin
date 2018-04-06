@@ -82,7 +82,6 @@ export namespace Actions {
     export const processBlock = (block: Block): Observable<Block> => {
         return Persistence.Instance.lastBlock.take(1).switchMap((lastBlock: Block) => {
             if(Crypto.hashBlock(lastBlock) == block.header.previousBlockHash) {
-                console.log('saving new block')
                 return Persistence.Instance.saveLastBlock(block).take(1);
             } else {
                 return Persistence.Instance.saveBlock(block).take(1);
@@ -104,5 +103,15 @@ export namespace Actions {
             }
         })
         */
+    }
+
+    export const getBlockUntill = (blockHash, from?, acc=[]) => {
+        if(blockHash == from) {
+            return Observable.of(acc)
+        }
+        const obs = from ? Persistence.Instance.getBlockByHash(from) : Persistence.Instance.lastBlock.take(1);
+        return obs.switchMap(b=>{
+            return getBlockUntill(blockHash, b.header.previousBlockHash, [Crypto.hashBlock(b), ...acc])
+        })
     }
 }

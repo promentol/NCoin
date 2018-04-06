@@ -8,7 +8,7 @@ export enum BlockType {
 
 export interface Block {
     header: BlockHeader;
-    singature: string;
+    signature: string;
     authorities?: string[];
     transactions: Transaction[];
 }
