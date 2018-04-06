@@ -61,9 +61,11 @@ export const verifySignatureOfBlock = (block: Block) => {
     if (block.transactions[0].data.type != TransactionType.CoinBase) {
         return false
     }
-    if (genesis.authorities.indexOf(block.transactions[0].data.to) == -1) {
+    /*
+    if (genesis.header.authorities.indexOf(block.transactions[0].data.to) == -1) {
         return false;
     }
+    */
 
     const publicKey = Buffer.from(block.transactions[0].data.to, 'hex');
     return Crypto.verifySignatureOfBlock(block, publicKey)
@@ -81,7 +83,7 @@ export const verifyBlockTransactions = (block: Block) => {
     }
 
     for (var i in block.transactions) {
-        if (!Crypto.verifyTransactionSignature(block.transactions[i], block.transactions[i].data.from)) {
+        if (i != '0' && !Crypto.verifyTransactionSignature(block.transactions[i], block.transactions[i].data.from)) {
             return Observable.of(false);
         }
     }
@@ -89,7 +91,7 @@ export const verifyBlockTransactions = (block: Block) => {
 }
 
 export const applyAndVerifyState = (block: Block) => {
-    return getState(block, (x) => Persistence.Instance.getBlockByHash(block.header.previousBlockHash)).map((state: State)=>{
+    return Persistence.Instance.getState(block).map((state: State)=>{
         return true;
     }).catch((e) => {
         return Observable.of(false)

@@ -6,6 +6,9 @@ import 'rxjs/add/operator/map';
 import 'rxjs/add/operator/multicast';
 import 'rxjs/add/operator/filter';
 import 'rxjs/add/operator/switchMap';
+import 'rxjs/add/operator/concatAll';
+import 'rxjs/add/operator/concatMap';
+
 import { checkServerIdentity } from 'tls';
 import { Persistence, Crypto, Transaction, Block, Actions } from '../core';
 
@@ -89,7 +92,7 @@ export default class NCoinNetwork {
         })
 
         this.messages.subscribe((x)=>{
-            console.log(x.message)
+            //console.log(x.message)
         })
 
         //send getblock message
@@ -220,11 +223,15 @@ export default class NCoinNetwork {
         //handle bx message
         this.messages
             .filter((x) => x.message instanceof NCoinBlockMessage)
-            .switchMap(({message}) => {
+            .concatMap(({message}) => {
+                console.log('asd')
                 if (message instanceof NCoinBlockMessage){
+                    console.log('inside NCoinBlockMessage',message.data)
+
                     return Actions.acceptBlock(message.data)
                 }
-            }).subscribe(()=>{
+            })
+            .subscribe(()=>{
                 console.log('asd')
             })
         
@@ -254,7 +261,7 @@ export default class NCoinNetwork {
             return new NCoinInvMessage([x])
         }).subscribe((invMessage)=>{
             this.addresses.forEach((con: NCoinConnection) => {
-                console.log(con)
+                //console.log(con)
                 con.sendData(invMessage.payloadBuffer)
             });
         })

@@ -50,15 +50,22 @@ export namespace Crypto {
     }
 
     export const verifySignatureOfBlock = (block: Block, publicKey) => {
-        return secp256k1.verify(hash(encodeBlockHeader(block)), Buffer.from(block.signature, 'hex'), Buffer.from(publicKey, 'hex'));
+        return secp256k1.verify(
+            Buffer.from(hash(encodeBlockHeader(block)), 'hex'),
+            Buffer.from(block.signature, 'hex'),
+            publicKey);
     }
 
     export const verifyTransactionSignature = (tx: Transaction, publicKey) => {
-        return secp256k1.verify(hashTransaction(tx), Buffer.from(tx.signature, 'hex'), Buffer.from(publicKey, 'hex'));
+        return secp256k1.verify(
+            Buffer.from(hashTransaction(tx), 'hex'), 
+            Buffer.from(tx.signature, 'hex'), 
+            Buffer.from(publicKey, 'hex')
+        );
     }
 
     export const signTransaction = (transaction: Transaction, privateKey): Transaction => {
-        transaction.signature = secp256k1.sign(hashTransaction(transaction).toString('hex')).signature.toString('hex');
+        transaction.signature = secp256k1.sign(Buffer.from(hashTransaction(transaction), 'hex')).signature.toString('hex');
         return transaction;
     }
 

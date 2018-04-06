@@ -71,6 +71,7 @@ export namespace Actions {
     }
     export const acceptBlock = (block: Block) => {
         return verifyBlock(block).switchMap((x)=>{
+            console.log('x', x)
             if(x) {
                 return processBlock(block)
             }
@@ -81,6 +82,7 @@ export namespace Actions {
         return Persistence.Instance.currentState.getValue().get(user).nonce + 1;
     }
     export const processTransaction = (tx: Transaction) => {
+        //verify transaction
         return Persistence.Instance.addTransactionToPool(tx)
     }
 
