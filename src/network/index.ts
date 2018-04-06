@@ -215,6 +215,12 @@ export default class NCoinNetwork {
 
 
         //setup ping and address table, remove
+        Observable.interval(10*1000).subscribe((x)=>{
+            const y = new NCoinPingMessage()
+            this.addresses.forEach((con: NCoinConnection) => {
+                con.sendData(y.payloadBuffer)
+            });
+        })
 
     }
     getAddresses() {
@@ -437,5 +443,16 @@ class NCoinAddressMessage extends NCoinMessage {
     }
     get addresses() {
         return this.data
+    }
+}
+
+class NCoinPingMessage extends NCoinMessage {
+    static TYPE = 'ping'
+    constructor() {
+        super()
+        this._type = NCoinPingMessage.TYPE
+    }
+    get payload(): any {
+        return "";
     }
 }
