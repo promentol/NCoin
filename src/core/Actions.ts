@@ -8,6 +8,7 @@ import { Transaction, TransactionType } from './Transaction'
 import { Block, BlockHeader, BlockType } from './Block'
 import {Persistence} from './Persistence';
 import { last } from 'rxjs/operators';
+import { verifyBlock } from './Verifier';
 
 
 export namespace Actions {
@@ -24,7 +25,7 @@ export namespace Actions {
     export const createTransaction = (tx: Transaction, privateKey) => {
         tx.data.nonce = generateNonce(tx.data.from);
         Crypto.signTransaction(tx, privateKey);
-        processTransaction(tx)
+        return processTransaction(tx)
     }
 
     export const createBlock = (transactionsPool: Transaction[], payload: string, minerPrivateKey): Observable<Block> => {
@@ -65,18 +66,22 @@ export namespace Actions {
         }
     }
 
-    export const acceptTransaction = () => {
-        //
+    export const acceptTransaction = (tx: Transaction) => {
+        return processTransaction(tx)
     }
-    export  const acceptBlock = () => {
-        //verifyBlock
+    export const acceptBlock = (block: Block) => {
+        return verifyBlock(block).switchMap((x)=>{
+            if(x) {
+                return processBlock(block)
+            }
+        })
     }
 
     export const generateNonce = (user: string) => {
         return Persistence.Instance.currentState.getValue().get(user).nonce + 1;
     }
     export const processTransaction = (tx: Transaction) => {
-        Persistence.Instance.addTransactionToPool(tx)
+        return Persistence.Instance.addTransactionToPool(tx)
     }
 
     export const processBlock = (block: Block): Observable<Block> => {

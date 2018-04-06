@@ -211,13 +211,21 @@ export default class NCoinNetwork {
         //handle tx message
         this.messages
             .filter((x) => x.message instanceof NCoinTxMessage)
-            .subscribe()
+            .subscribe(({ message }) => {
+                if (message instanceof NCoinTxMessage) {
+                    return Actions.acceptTransaction(message.data)
+                }
+            })
 
         //handle bx message
         this.messages
             .filter((x) => x.message instanceof NCoinBlockMessage)
-            .subscribe(() => {
-
+            .switchMap(({message}) => {
+                if (message instanceof NCoinBlockMessage){
+                    return Actions.acceptBlock(message.data)
+                }
+            }).subscribe(()=>{
+                console.log('asd')
             })
         
 
