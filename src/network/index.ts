@@ -1,5 +1,4 @@
 import * as net from 'net'
-import * as ndjson from 'ndjson'
 import { Subject } from "rxjs/Subject";
 import { Observable } from "rxjs/Observable"
 import 'rxjs/add/operator/map';
@@ -8,6 +7,10 @@ import 'rxjs/add/operator/filter';
 import 'rxjs/add/operator/switchMap';
 import 'rxjs/add/operator/concatAll';
 import 'rxjs/add/operator/concatMap';
+
+import {
+    NCoinMessageFactory
+} from './messages'
 
 import { checkServerIdentity } from 'tls';
 import { Persistence, Crypto, Transaction, Block, Actions } from '../core';
@@ -59,19 +62,6 @@ const AddressBook = {
     //'ip' to socket
 }
 
-interface Address {
-    url: string;
-    port: number;
-}
-
-interface INV {
-    type: INV_TYPE;
-    hash: string;
-}
-enum INV_TYPE {
-    INV_TRANSACTION,
-    INV_BLOCK
-}
 
 export default class NCoinNetwork {
     mainConnection: NCoinServerConnection;
@@ -304,233 +294,12 @@ export default class NCoinNetwork {
         n.messages.map((message)=>{
             return {
                 connection: n,
-                message: NCoinMessage.makeFromBuffer(message)
+                message: NCoinMessageFactory.fromJSON(message)
             }
         }).subscribe(
             (x)=>{ this.messages.next(x) },
             (error) => console.log(error),
             () => { address && this.addresses.delete(address) }
         )
-    }
-}
-
-abstract class NCoinConnection  {
-    abstract sendData(m) 
-    abstract get address()
-    public messages: Subject<string> = new Subject();
-}
-
-class NCoinServerConnection extends NCoinConnection {
-    constructor(socket){
-        super()
-        this.socket = socket
-
-        this.socket
-            .pipe(ndjson.parse())
-            .on("data", (data)=>{
-                this.messages.next(data)
-            })
-        this.socket.on("error", (e) => {
-            console.log(e)
-        })
-        this.socket.on("close", (data)=>{
-            this.messages.complete()
-        })
-        this.writeStream.pipe(this.socket)
-    }
-    socket: any;
-    writeStream = ndjson.serialize();
-    sendData(m) {
-        this.writeStream.write(m)
-    }
-    get address() {
-        if (this.socket.remoteAddress.substr(0, 7) == "::ffff:") {
-            return this.socket.remoteAddress.substr(7)
-        }
-        return this.socket.remoteAddress
-    }
-}
-
-class NCoinClientConnection extends NCoinConnection {
-    constructor(address: Address) {
-        super()
-        this.client = new net.Socket();
-        this.client.connect(address.port, address.url)
-        this.client
-            .pipe(ndjson.parse())
-            .on("data", (data)=>{
-                this.messages.next(data)
-            })
-        this.client.on("error", (e) => {
-            console.log(e)
-        })
-        this.client.on("close", () => {
-            this.messages.complete()
-        })
-        this.writeStream.pipe(this.client)
-    }
-    client: any;
-    writeStream = ndjson.serialize();
-    sendData(m) {
-        this.writeStream.write(m)
-    }
-    get address() {
-        return ''
-    }
-}
-
-abstract class NCoinMessage {
-    protected _type: string;
-    public get type() {
-        return this._type
-    }
-    static makeFromBuffer(dataBuf): NCoinMessage  {
-        const { type, data } = dataBuf //JSON.parse(dataBuf.toString())
-        
-        if (type == NCoinAddressMessage.TYPE) {
-            return new NCoinAddressMessage(data)
-        }
-        if (type == NCoinHelloMessage.TYPE) {
-            return new NCoinHelloMessage(data)
-        }
-        if (type == NCoinInvMessage.TYPE) {
-            return new NCoinInvMessage(data)
-        }
-        if (type == NCoinGetDataMessage.TYPE) {
-            return new NCoinGetDataMessage(data)
-        }
-        if (type == NCoinGetBlockMessage.TYPE) {
-            return new NCoinGetBlockMessage(data)
-        }
-        if (type == NCoinPingMessage.TYPE) {
-            return new NCoinPingMessage()
-        }
-        if (type == NCoinTxMessage.TYPE) {
-            return new NCoinTxMessage(data)
-        }
-        if (type == NCoinBlockMessage.TYPE) {
-            return new NCoinBlockMessage(data)
-        }
-        return null
-    }
-    public get payloadBuffer() {
-        return {
-            type: this.type,
-            data: this.payload
-        }
-    }
-    protected abstract get payload();
-}
-
-class NCoinHelloMessage extends NCoinMessage {
-    static TYPE = 'hello'
-    public data: any;
-    constructor(data) {
-        super()
-        this._type = NCoinHelloMessage.TYPE
-        this.data = data;
-    }
-    get payload(): any {
-        return this.data;
-    }
-}
-
-class NCoinInvMessage extends NCoinMessage {
-    static TYPE = 'inv'
-    public data: INV[];
-    constructor(data) {
-        super()
-        this._type = NCoinInvMessage.TYPE
-        this.data = data;
-    }
-    get payload(): any {
-        return this.data;
-    }
-}
-
-class NCoinGetDataMessage extends NCoinMessage {
-    static TYPE = 'getdata';
-    public data: INV;
-    constructor(data) {
-        super()
-        this._type = NCoinGetDataMessage.TYPE
-        this.data = data;
-    }
-    get payload(): any {
-        return this.data;
-    }
-
-}
-
-class NCoinGetBlockMessage extends NCoinMessage {
-    static TYPE = 'getblock';
-    public data: INV;
-    constructor(data) {
-        super()
-        this._type = NCoinGetBlockMessage.TYPE
-        this.data = data;
-    }
-    get payload(): any {
-        return this.data;
-    }
-
-}
-
-class NCoinBlockMessage extends NCoinMessage {
-    static TYPE = 'block';
-    public data: Block;
-    constructor(data) {
-        super()
-        this._type = NCoinBlockMessage.TYPE
-        this.data = data;
-    }
-    get payload(): any {
-        return this.data;
-    }
-
-}
-
-class NCoinTxMessage extends NCoinMessage {
-    static TYPE = 'tx';
-    public data: Transaction;
-    constructor(data) {
-        super()
-        this._type = NCoinTxMessage.TYPE
-        this.data = data;
-    }
-    get payload(): any {
-        return this.data;
-    }
-
-}
-
-class NCoinAddressMessage extends NCoinMessage {
-    static TYPE = 'address'
-    private data: Address[];
-    constructor(addr: Address[] | Buffer) {
-        super()
-        this._type = NCoinAddressMessage.TYPE
-        if(addr instanceof Buffer) {
-            this.data = JSON.parse(addr.toString()).data
-        } else {
-            this.data = addr
-        }
-    }
-    get payload(): any {
-        return this.data;
-    }
-    get addresses() {
-        return this.data
-    }
-}
-
-class NCoinPingMessage extends NCoinMessage {
-    static TYPE = 'ping'
-    constructor() {
-        super()
-        this._type = NCoinPingMessage.TYPE
-    }
-    get payload(): any {
-        return "";
     }
 }
