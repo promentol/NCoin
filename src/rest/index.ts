@@ -39,7 +39,9 @@ export function initREST(port) {
     })
 
     app.post('/transactions', function (req, res) {
-        
+        Actions.acceptTransaction(req.body).toPromise().then(() => {
+            res.send('ok')
+        }).catch(e => res.status(400).send('NOT EXISTS'))
     })
 
     app.use(function (req, res) {
