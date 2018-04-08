@@ -214,10 +214,12 @@ export default class NCoinNetwork {
         //handle tx message
         this.messages
             .filter((x) => x.message instanceof NCoinTxMessage)
-            .subscribe(({ message }) => {
+            .map(({ message }) => {
                 if (message instanceof NCoinTxMessage) {
                     return Actions.acceptTransaction(message.data)
                 }
+            }).subscribe(()=>{
+                console.log('Transaction ')
             })
 
         //handle bx message
@@ -227,7 +229,6 @@ export default class NCoinNetwork {
                 console.log('asd')
                 if (message instanceof NCoinBlockMessage){
                     console.log('inside NCoinBlockMessage',message.data)
-
                     return Actions.acceptBlock(message.data)
                 }
             })

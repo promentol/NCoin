@@ -16,6 +16,7 @@
     "immutable": "^3.8.2",
     "leveldown": "^3.0.0",
     "levelup": "^2.0.2",
+    "lodash": "^4.17.5",
     "merkle-lib": "^2.0.10",
     "minimist": "^1.2.0",
     "ndjson": "^1.5.0",

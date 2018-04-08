@@ -11,7 +11,8 @@ import {
 import {
     getState,
     State,
-    initialState
+    initialState,
+    applyTransactionToState
 } from './State'
 
 import { Crypto } from './Crypto'
@@ -51,6 +52,29 @@ export const verifyBlock = (block: Block) => {
         } else {
             return Observable.of(false)
         }
+    })
+}
+
+export const verifyTransaction = (tx: Transaction) => {
+    if(tx.data.type != TransactionType.Transfer) {
+        return Observable.of(false);
+    }
+    
+    if(
+        Crypto.verifyTransactionSignature(
+            tx,
+            tx.data.from
+        )
+    ) {
+        return Observable.of(false);
+    }
+
+    return Persistence.Instance.currentState.map((state) => {
+        return applyTransactionToState(state, tx)
+    }).map(() => {
+        return true;
+    }).catch(() => {
+        return Observable.of(false)
     })
 }
 

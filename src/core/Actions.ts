@@ -8,7 +8,8 @@ import { Transaction, TransactionType } from './Transaction'
 import { Block, BlockHeader, BlockType } from './Block'
 import {Persistence} from './Persistence';
 import { last } from 'rxjs/operators';
-import { verifyBlock } from './Verifier';
+import { verifyBlock, verifyTransaction } from './Verifier';
+import { applyTransactionToState } from './State';
 
 
 export namespace Actions {
@@ -67,7 +68,9 @@ export namespace Actions {
     }
 
     export const acceptTransaction = (tx: Transaction) => {
-        return processTransaction(tx)
+        return verifyTransaction(tx).map((valid)=>{
+            return Actions.processTransaction(tx)
+        })
     }
     export const acceptBlock = (block: Block) => {
         return verifyBlock(block).switchMap((x)=>{

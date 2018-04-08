@@ -14,6 +14,8 @@ import {
     Crypto
 } from './Crypto'
 
+import _ from 'lodash'
+
 import { Observable } from 'rxjs/Observable';
 import 'rxjs/add/observable/of';
 import 'rxjs/add/observable/from';
@@ -104,7 +106,8 @@ export class Persistence {
     public transactions: Subject<Transaction> = new Subject()
 
     public addTransactionToPool = (tx: Transaction) => {
-        this.transactionPool.next([...this.transactionPool.getValue(), tx])
+        const pool = _.orderBy([...this.transactionPool.getValue(), tx], 'data.nonce')
+        this.transactionPool.next(pool)
         this.transactions.next(tx)
     };
 
