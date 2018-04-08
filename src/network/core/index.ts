@@ -1,6 +1,7 @@
 import * as net from 'net'
 import { Subject } from "rxjs/Subject";
 import * as ndjson from 'ndjson'
+var LDJSONStream = require('ld-jsonstream');
 
 export interface Address {
     url: string;
@@ -27,20 +28,23 @@ export class NCoinServerConnection extends NCoinConnection {
         super()
         this.socket = socket
 
-        this.socket
-            .pipe(ndjson.parse())
-            .on("data", (data) => {
+        const input = this.socket.pipe(this.ls)
+
+
+        input.on("data", (data) => {
                 this.messages.next(data)
             })
-        this.socket.on("error", (e) => {
+        input.on("error", (e) => {
             console.log(e)
         })
-        this.socket.on("close", (data) => {
+        input.on("close", (data) => {
             this.messages.complete()
         })
+        
         this.writeStream.pipe(this.socket)
     }
     socket: any;
+    ls = new LDJSONStream();
     writeStream = ndjson.serialize();
     sendData(m) {
         this.writeStream.write(m)
