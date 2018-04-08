@@ -13,7 +13,7 @@ export function initREST(port) {
     })
 
     app.get('/blocksCount', function (req, res) {
-        Actions.getBlockCount().subscribe((blocksCount)=>{
+        Actions.getBlockCount().take(1).toPromise().then((blocksCount)=>{
             res.send({
                 blocksCount
             })
@@ -21,13 +21,13 @@ export function initREST(port) {
     })
 
     app.get('/blocks/:hash', function (req, res) {
-        Actions.getBlock(req.params.hash).toPromise().then((block) => {
+        Actions.getBlock(req.params.hash).take(1).toPromise().then((block) => {
             res.send(block)
         }).catch(e => res.status(400).send('NOT EXISTS'))
     })
 
     app.get('/transactions/:hash', function (req, res) {
-        Actions.getTransaction(req.params.hash).toPromise().then((tx) => {
+        Actions.getTransaction(req.params.hash).take(1).toPromise().then((tx) => {
             res.send(tx)
         }).catch(e => res.status(400).send('NOT EXISTS'))
     })
@@ -39,7 +39,8 @@ export function initREST(port) {
     })
 
     app.post('/transactions', function (req, res) {
-        Actions.acceptTransaction(req.body).toPromise().then(() => {
+        Actions.acceptTransaction(req.body).take(1).toPromise().then(() => {
+            console.log('finished')
             res.send('ok')
         }).catch(e => res.status(400).send('NOT EXISTS'))
     })

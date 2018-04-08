@@ -222,7 +222,7 @@ export default class NCoinNetwork {
         //handle tx message
         this.messages
             .filter((x) => x.message instanceof NCoinTxMessage)
-            .map(({ message }) => {
+            .concatMap(({ message }) => {
                 if (message instanceof NCoinTxMessage) {
                     return Actions.acceptTransaction(message.data)
                 }
@@ -244,7 +244,6 @@ export default class NCoinNetwork {
                 console.log('asd')
             })
         
-
         //Listen new transactions, send inv message
         Persistence.Instance.transactions.map((tx) => {
             return {
@@ -252,6 +251,7 @@ export default class NCoinNetwork {
                 hash: Crypto.hashTransaction(tx)
             }
         }).map((x) => {
+            console.log('Persistence.Instance.transactions', x)
             return new NCoinInvMessage([x])
         }).subscribe((invMessage) => {
             this.addresses.forEach((con: NCoinConnection) => {

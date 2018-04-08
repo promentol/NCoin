@@ -110,6 +110,7 @@ export class Persistence {
 
     public addTransactionToPool = (tx: Transaction) => {
         const pool = _.orderBy([...this.transactionPool.getValue(), tx], 'data.nonce')
+        console.log(pool, 'pool')
         this.transactionPool.next(pool)
         this.transactions.next(tx)
     };

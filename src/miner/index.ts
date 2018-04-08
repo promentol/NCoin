@@ -33,12 +33,13 @@ export class Miner {
         Rx
             .Observable
             .interval(10*1000)//*10)
-            .switchMap(() => Persistence.Instance.transactionPool.take(1))
-            .merge(Persistence.Instance.transactionPool
-                .filter((transactions) => {
+            .map(() => Persistence.Instance.transactionPool.getValue())
+            .merge(
+                Persistence.Instance.transactionPool.filter((transactions) => {
                     return transactions.length > 10
                 })
             )
+            .do((x) => console.log(x, '2'))
             .switchMap(this.simplifyTransactions)
             .switchMap((transactions)=>{
                 return Actions.createBlock(transactions, this.payload, this.privateKey)

@@ -54,7 +54,7 @@ export namespace Actions {
     }
 
     export const prepareTransactions = (transactionsPool: Transaction[]) => {
-        return []
+        return transactionsPool
     }
 
     export const createCoinbase = (privateKey, payload: string) => {
@@ -70,13 +70,12 @@ export namespace Actions {
     }
 
     export const acceptTransaction = (tx: Transaction) => {
-        return verifyTransaction(tx).map((valid)=>{
+        return verifyTransaction(tx).switchMap((valid)=>{
             return Actions.processTransaction(tx)
         })
     }
     export const acceptBlock = (block: Block) => {
         return verifyBlock(block).switchMap((x)=>{
-            console.log('x', x)
             if(x) {
                 return processBlock(block)
             }
@@ -106,7 +105,6 @@ export namespace Actions {
         }).switchMap((x)=>{
             return Observable.from(block.transactions);
         }).mergeMap((tx)=>{
-            console.log('tx', tx, Crypto.hashTransaction(tx))
             return Persistence.Instance.saveTransaction(tx)
         }).map(()=>block)
         /*

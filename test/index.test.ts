@@ -10,17 +10,15 @@ import {
     encodeTransaction,
 } from '../src/core'
 
+/*
 var levelup = require('levelup')
 var leveldown = require('leveldown')
 
 // 1) Create our store
 var db = levelup(leveldown('./data'))
 
-
 Persistence.Instance.setDB(db).subscribe(() => {
-    Actions.getBlockUntill('6319dabd2040e9f24f7fb09876c5e4b9797ad96661f5b3be8275b8c2c38707dd').subscribe((x) => {
-        console.log(x)
-    })
+
 })
 
 /*
@@ -109,4 +107,21 @@ ls.write('{ "foo" : "bar" }\n   n  { "foo" : "baz" }\n');
 console.log(Crypto.hashTransaction(
     { "data": { "to": "A99x/geiJvPrh1vp/kTIH9qdtTgGAIJXmOhF57zVWQuO", "type": 0, "amount": 100, "payload": "payload", "nonce": 0 } }
 ))*/
+
+
+
+const x = { 
+    "data": { 
+        "from": "A99x/geiJvPrh1vp/kTIH9qdtTgGAIJXmOhF57zVWQuO", 
+        "to": "Am7Wu5G14aM0A+8SOMvBbHLg479EsqSRMJkGPqRSwg2u",
+        "type": 0, 
+        "amount": 100, 
+        "payload": "payload", 
+        "nonce": 1 
+    }
+}
+//const c = (Buffer.from('G63qrKwUW+1RmOXpPqQJTBL8tS7ipzZJ7Decu0EQnWQ=', 'base64') )
+//Crypto.signTransaction(x, c)
+console.log(Crypto.hashTransaction(x))
+
 

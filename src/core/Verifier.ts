@@ -69,7 +69,7 @@ export const verifyTransaction = (tx: Transaction) => {
         return Observable.of(false);
     }
 
-    return Persistence.Instance.currentState.map((state) => {
+    return Persistence.Instance.currentState.take(1).map((state) => {
         return applyTransactionToState(state, tx)
     }).map(() => {
         return true;

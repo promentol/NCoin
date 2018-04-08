@@ -65,7 +65,7 @@ export namespace Crypto {
     }
 
     export const signTransaction = (transaction: Transaction, privateKey): Transaction => {
-        transaction.signature = secp256k1.sign(Buffer.from(hashTransaction(transaction), 'base64')).signature.toString('base64');
+        transaction.signature = secp256k1.sign(Buffer.from(hashTransaction(transaction), 'base64'), privateKey).signature.toString('base64');
         return transaction;
     }
 
