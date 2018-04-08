@@ -34,6 +34,12 @@ export function initREST(port) {
         })
     })
 
+    app.get('/:address/nonce', function (req, res) {
+        res.send({
+            nonce: Actions.generateNonce(req.params.address)
+        })
+    })
+
     app.post('/transactions', function (req, res) {
     })
 

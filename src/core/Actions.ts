@@ -82,7 +82,8 @@ export namespace Actions {
     }
 
     export const generateNonce = (user: string) => {
-        return Persistence.Instance.currentState.getValue().get(user).nonce + 1;
+        const state = Persistence.Instance.currentState.getValue().get(user);
+        return state ? state.nonce + 1 : 1;
     }
     export const processTransaction = (tx: Transaction) => {
         //verify transaction
