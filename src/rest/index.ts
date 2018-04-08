@@ -41,6 +41,7 @@ export function initREST(port) {
     })
 
     app.post('/transactions', function (req, res) {
+        
     })
 
     app.use(function (req, res) {

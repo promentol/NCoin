@@ -14,7 +14,9 @@ import { applyTransactionToState } from './State';
 
 export namespace Actions {
     export const getBlockCount = () => {
-        return Observable.of(0)
+        return Persistence.Instance.lastBlock.take(1).map((x)=>{
+            return x.header.depth
+        })
     }
     export const getBlock = (blockHash) => {
         return Persistence.Instance.getBlockByHash(blockHash)
