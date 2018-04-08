@@ -4,6 +4,7 @@ import { Address } from '../core'
 export class NCoinAddressMessage extends NCoinMessage {
     static TYPE = 'address'
     private data: Address[];
+    protected schema = 'asd';
     constructor(addr: Address[] | Buffer) {
         super()
         this._type = NCoinAddressMessage.TYPE

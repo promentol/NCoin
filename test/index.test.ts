@@ -16,6 +16,7 @@ var leveldown = require('leveldown')
 var db = levelup(leveldown('./data'))
 
 
+/*
 Persistence.Instance.setDB(db).subscribe(() => {
     Actions.getBlockUntill('6319dabd2040e9f24f7fb09876c5e4b9797ad96661f5b3be8275b8c2c38707dd').subscribe((x) => {
         console.log(x)
@@ -53,3 +54,45 @@ function debug(x) {
         console.log(x)
     }
 }
+
+export const NCoinMessageSchema = {
+    "$id": "NCoinMessageSchema",
+    //"$schema": "http://json-schema.org/schema#",
+    "title": "Message",
+    "type": "object",
+    "required": ["type", "data"],
+    "properties": {
+        "type": {
+            "type": "string"
+        },
+        "data": {
+            "type": "string"
+        }
+    }
+}
+
+
+
+/*
+ajv.addSchema(NCoinMessageSchema);
+
+var validate = ajv.compile(NCoinInvMessageSchema);
+
+//validate.addSchema(NCoinInvMessageSchema)
+var valid = validate({
+    type: 'asd',
+    data: [
+        {
+            "type": 0,
+            "hash": "asasasasasasasasasasasasasasasas"
+        }
+    ]
+});
+if (!valid) console.log(validate.errors);
+*/
+
+import * as ndjson from 'ndjson'
+
+
+const stream = require('stream');
+const fs = require('fs')

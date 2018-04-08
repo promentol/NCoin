@@ -8,9 +8,15 @@ import { NCoinPingMessage } from './ping'
 import { NCoinTxMessage } from './tx'
 import { NCoinBlockMessage } from './block'
 
+var Ajv = require('ajv');
+var ajv = new Ajv();
+ajv.addMetaSchema(require('ajv/lib/refs/json-schema-draft-06.json'));
+require('ajv-merge-patch/keywords/patch')(ajv);
+
+
 export class NCoinMessageFactory{
     static fromJSON(json): NCoinMessage {
-        const { type, data } = json //JSON.parse(dataBuf.toString())
+        const {data, type}  = json
 
         if (type == NCoinAddressMessage.TYPE) {
             return new NCoinAddressMessage(data)

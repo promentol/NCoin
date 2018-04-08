@@ -11,3 +11,19 @@ export abstract class NCoinMessage {
     }
     protected abstract get payload();
 }
+
+export const NCoinMessageSchema = {
+    "$id": "NCoinMessageSchema.json#",
+    "$schema": "http://json-schema.org/schema#",
+    "title": "Message",
+    "type": "object",
+    "required": ["type", "data"],
+    "properties": {
+        "type": {
+            "type": "string"
+        },
+        "data": {
+            "type": "object"
+        }
+    }
+}
