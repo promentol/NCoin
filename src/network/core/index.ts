@@ -36,11 +36,13 @@ export class NCoinServerConnection extends NCoinConnection {
             })
         input.on("error", (e) => {
             console.log(e)
+            input.destroy()
+            this.messages.complete()
         })
         input.on("close", (data) => {
             this.messages.complete()
         })
-        
+
         this.writeStream.pipe(this.socket)
     }
     socket: any;
@@ -62,15 +64,16 @@ export class NCoinClientConnection extends NCoinConnection {
         super()
         this.client = new net.Socket();
         this.client.connect(address.port, address.url)
-        this.client
-            .pipe(ndjson.parse())
-            .on("data", (data) => {
-                this.messages.next(data)
-            })
-        this.client.on("error", (e) => {
-            console.log(e)
+        const input = this.client.pipe(ndjson.parse())
+        input.on("data", (data) => {
+            this.messages.next(data)
         })
-        this.client.on("close", () => {
+        input.on("error", (e) => {
+            input.destroy()
+            console.log(e)
+            this.messages.complete()
+        })
+        input.on("close", () => {
             this.messages.complete()
         })
         this.writeStream.pipe(this.client)

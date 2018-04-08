@@ -8,7 +8,7 @@ import {
     encodeBlockHeader,
     encodeTransaction,
 } from '../src/core'
-
+/*
 var levelup = require('levelup')
 var leveldown = require('leveldown')
 
@@ -93,6 +93,16 @@ if (!valid) console.log(validate.errors);
 
 import * as ndjson from 'ndjson'
 
+var LDJSONStream = require('ld-jsonstream');
 
-const stream = require('stream');
-const fs = require('fs')
+var ls = ndjson.parse()
+
+ls.on('data', function (obj) {
+    console.log(typeof obj, obj);
+});
+
+ls.on('error', function (err) {
+    console.log(err);
+});
+
+ls.write('{ "foo" : "bar" }\n   n  { "foo" : "baz" }\n');
