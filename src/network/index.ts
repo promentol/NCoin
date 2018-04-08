@@ -9,8 +9,26 @@ import 'rxjs/add/operator/concatAll';
 import 'rxjs/add/operator/concatMap';
 
 import {
-    NCoinMessageFactory
+    NCoinMessageFactory,
+    NCoinAddressMessage,
+    NCoinBlockMessage,
+    NCoinGetBlockMessage,
+    NCoinGetDataMessage,
+    NCoinHelloMessage,
+    NCoinInvMessage,
+    NCoinMessage, 
+    NCoinPingMessage,
+    NCoinTxMessage
 } from './messages'
+
+import { 
+    NCoinClientConnection,
+    NCoinConnection,
+    NCoinServerConnection,
+    Address,
+    INV,
+    INV_TYPE
+} from "./core";
 
 import { checkServerIdentity } from 'tls';
 import { Persistence, Crypto, Transaction, Block, Actions } from '../core';
