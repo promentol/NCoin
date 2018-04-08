@@ -37,7 +37,6 @@ try {
 //private key, public key initiation
 const keyDirectory = args.k || args.key
 const key = keyDirectory ? fs.readFileSync(keyDirectory) : Crypto.generatePrivateKey()
-
 if (!Crypto.verifyPrivateKey(key)) {
     console.error(`Not valid private key`);
     process.exit()

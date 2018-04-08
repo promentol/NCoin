@@ -91,7 +91,7 @@ export const verifySignatureOfBlock = (block: Block) => {
     }
     */
 
-    const publicKey = Buffer.from(block.transactions[0].data.to, 'hex');
+    const publicKey = Buffer.from(block.transactions[0].data.to, 'base64');
     return Crypto.verifySignatureOfBlock(block, publicKey)
 }
 

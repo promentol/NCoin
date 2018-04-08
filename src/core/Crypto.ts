@@ -26,7 +26,7 @@ export namespace Crypto {
     }
 
     export const generatePublicKey = (privKey) => {
-        return secp256k1.publicKeyCreate(privKey).toString('hex')
+        return secp256k1.publicKeyCreate(privKey).toString('base64')
     }
 
     export function hash(data) {
@@ -37,40 +37,40 @@ export namespace Crypto {
     }
 
     export const hashBlock = (block: Block) => {
-        return hash(encodeBlockHeader(block)).toString('hex');
+        return hash(encodeBlockHeader(block)).toString('base64');
     }
 
     export const hashTransaction = (tx: Transaction) => {
-        return hash(encodeTransaction(tx)).toString('hex');
+        return hash(encodeTransaction(tx)).toString('base64');
     }
 
     export const signBlock = (block: Block, privateKey): Block => {
-        block.signature = secp256k1.sign(hash(encodeBlockHeader(block)), privateKey).signature.toString('hex')
+        block.signature = secp256k1.sign(hash(encodeBlockHeader(block)), privateKey).signature.toString('base64')
         return block
     }
 
     export const verifySignatureOfBlock = (block: Block, publicKey) => {
         return secp256k1.verify(
-            Buffer.from(hash(encodeBlockHeader(block)), 'hex'),
-            Buffer.from(block.signature, 'hex'),
+            Buffer.from(hash(encodeBlockHeader(block)), 'base64'),
+            Buffer.from(block.signature, 'base64'),
             publicKey);
     }
 
     export const verifyTransactionSignature = (tx: Transaction, publicKey) => {
         return secp256k1.verify(
-            Buffer.from(hashTransaction(tx), 'hex'), 
-            Buffer.from(tx.signature, 'hex'), 
-            Buffer.from(publicKey, 'hex')
+            Buffer.from(hashTransaction(tx), 'base64'), 
+            Buffer.from(tx.signature, 'base64'), 
+            Buffer.from(publicKey, 'base64')
         );
     }
 
     export const signTransaction = (transaction: Transaction, privateKey): Transaction => {
-        transaction.signature = secp256k1.sign(Buffer.from(hashTransaction(transaction), 'hex')).signature.toString('hex');
+        transaction.signature = secp256k1.sign(Buffer.from(hashTransaction(transaction), 'base64')).signature.toString('base64');
         return transaction;
     }
 
     export const calculateMerkle = (transactions: Transaction[]) => {
-        return fastRoot(transactions.map((x) => Buffer.from(encodeTransaction(x))), hash).toString('hex')
+        return fastRoot(transactions.map((x) => Buffer.from(encodeTransaction(x))), hash).toString('base64')
     }
 }
 

@@ -60,7 +60,7 @@ export namespace Actions {
     export const createCoinbase = (privateKey, payload: string) => {
         return <Transaction>{
             data: {
-                to: Crypto.generatePublicKey(privateKey).toString('hex'),
+                to: Crypto.generatePublicKey(privateKey).toString('base64'),
                 type: TransactionType.CoinBase,
                 amount: 100,
                 payload,
