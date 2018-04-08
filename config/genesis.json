@@ -5,8 +5,11 @@
         "nonce": 0,
         "merkleRoot": null,
         "type": 0,
-        "miner": null,
-        "authorities": ["asd", "aaaa"]
+        "miner": null
     },
+    "authorities": [
+        "Am7Wu5G14aM0A+8SOMvBbHLg479EsqSRMJkGPqRSwg2u",
+        "A99x/geiJvPrh1vp/kTIH9qdtTgGAIJXmOhF57zVWQuO"
+    ],
     "transactions": []
 }

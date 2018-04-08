@@ -14,11 +14,17 @@ import {
 import * as Rx from 'rxjs'
 import { applyTransactionToState } from '../core/State';
 
-export class Miner extends events.EventEmitter {
-    timeout: any;
+const genesis: Block = require('../../config/genesis.json');
+
+
+export class Miner {
 
     constructor(public privateKey: Buffer, public payload: string) {
-        super();
+        const publicKey = Crypto.generatePublicKey(privateKey).toString('base64')
+        if (genesis.authorities.indexOf(publicKey) == -1) {
+            console.log('INVALID PRIVATE KEY FOR MINING')
+            process.exit()
+        }
     }
 
     public startMining() {

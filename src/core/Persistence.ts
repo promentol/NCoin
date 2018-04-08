@@ -29,7 +29,7 @@ import 'rxjs/add/operator/take';
 import { BehaviorSubject } from 'rxjs/BehaviorSubject';
 import { Subject } from 'rxjs/Subject';
 
-const genesis: Block = require('../config/genesis.json');
+const genesis: Block = require('../../config/genesis.json');
 
 export class Persistence {
 
@@ -111,8 +111,11 @@ export class Persistence {
         this.transactions.next(tx)
     };
 
-    public eraseTransactionToPool = () => {
-        this.transactionPool.next([])
+    public eraseTransactionToPool = (hashes) => {
+        const filteredPool = _.filter(this.transactionPool.getValue(), (x)=>{
+            return hashes.indexOf(Crypto.hashTransaction(x)) == -1
+        })
+        this.transactionPool.next(filteredPool)
     }
 
     public readonly currentState: BehaviorSubject<State> = new BehaviorSubject(initialState());

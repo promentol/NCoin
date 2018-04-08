@@ -7,3 +7,4 @@ src/**/*.js.map
 test/**/*.js
 test/**/*.js.map
 TestResults
+dist

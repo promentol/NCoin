@@ -37,7 +37,7 @@ import 'rxjs/add/operator/catch';
 
 import {Persistence} from './Persistence'
 
-const genesis: Block = require('../config/genesis.json');
+const genesis: Block = require('../../config/genesis.json');
 
 export const verifyBlock = (block: Block) => {
     return Persistence.Instance.getBlockByHash(block.header.previousBlockHash).map((previousBlock) => {

@@ -16,7 +16,7 @@ import { Observable } from 'rxjs/Observable';
 import 'rxjs/add/observable/of';
 import 'rxjs/add/observable/from';
 
-const genesis: Block = require('../config/genesis.json');
+const genesis: Block = require('../../config/genesis.json');
 
 export class State {
     private a: Immutable.Map<string, string>;

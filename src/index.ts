@@ -42,12 +42,11 @@ if (!Crypto.verifyPrivateKey(key)) {
     process.exit()
 }
 
-
 //network port
 const netWorkPort = parseInt(args.p) || parseInt(args.port) || 1996
 const noBootstrap = args.nb
 
-const { bootAddresses } = require('./config/config')
+const { bootAddresses } = require('../config/config')
 
 //rest port
 const restPort = parseInt(args.r) || parseInt(args.rest)

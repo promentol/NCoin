@@ -99,7 +99,10 @@ export namespace Actions {
             } else {
                 return Persistence.Instance.saveBlock(block).take(1);
             }
-        }) 
+        }).do(()=>{
+            const hashes = block.transactions.map((x)=>Crypto.hashTransaction(x))
+            return Persistence.Instance.eraseTransactionToPool(hashes);
+        })
         /*
         return Persistence.Instance.lastBlock.map((lastBlock)=>{
             if()
