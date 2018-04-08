@@ -2,6 +2,9 @@ const express = require('express')
 const bodyParser = require('body-parser')
 import {Actions} from '../core'
 
+const { check, validationResult, checkSchema } = require('express-validator/check');
+
+
 export function initREST(port) {
     
     const app = express()
@@ -38,7 +41,40 @@ export function initREST(port) {
         })
     })
 
-    app.post('/transactions', function (req, res) {
+    app.post('/transactions', checkSchema({
+        "data.from": {
+            isLength: {
+                options: { min: 1, max: 100 }
+            }
+        },
+        "data.to": {
+            isLength: {
+                options: { min: 1, max:100 }
+            }
+        },
+        "data.type": {
+            isInt: true,
+            in: [0, 1]
+        },
+        "data.amount": {
+            isInt: true
+        },
+        "data.payload": {
+            isLength: {
+                options: { min: 1, max: 100 }
+            }
+        },
+        "data.nonce": {
+            isInt: true,
+        },
+        "signature": {
+            isLength: {
+                options: { min: 1 }
+            }
+        },
+    }), function (req, res) {
+        validationResult(req).throw();
+
         Actions.acceptTransaction(req.body).take(1).toPromise().then(() => {
             console.log('finished')
             res.send('ok')

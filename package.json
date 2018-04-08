@@ -15,6 +15,7 @@
     "axios": "^0.18.0",
     "body-parser": "^1.18.2",
     "express": "^4.16.3",
+    "express-validator": "^5.1.2",
     "immutable": "^3.8.2",
     "ld-jsonstream": "^1.0.1",
     "leveldown": "^3.0.0",
