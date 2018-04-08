@@ -54,6 +54,7 @@ const restPort = parseInt(args.r) || parseInt(args.rest)
 
 //miner 
 const minerModule = (args.m) || (args.mining) || (args.mine)
+const minerData = args.mp
 
 var levelup = require('levelup')
 var leveldown = require('leveldown')
@@ -82,7 +83,7 @@ Persistence.Instance.setDB(db).subscribe(()=>{
 
     //mining module
     if (minerModule) {
-        const miner = new Miner(key, 'payload')
+        const miner = new Miner(key, minerData || "")
         miner.startMining();
     }
 })
