@@ -14,7 +14,7 @@ import {
     Crypto
 } from './Crypto'
 
-import _ from 'lodash'
+import * as _ from 'lodash'
 
 import { Observable } from 'rxjs/Observable';
 import 'rxjs/add/observable/of';
@@ -95,7 +95,10 @@ export class Persistence {
     public saveTransaction: (tx: Transaction) => Observable<boolean> = Observable.bindNodeCallback((
         tx: Transaction,
         callback: (error: Error, value: boolean) => void
-    ) => this._db.put(`t-${Crypto.hashTransaction(tx)}`, JSON.stringify(tx), (err, buffer) => callback(null, !err && !!buffer)))
+    ) => this._db.put(`t-${Crypto.hashTransaction(tx)}`, JSON.stringify(tx), (err, buffer) => {
+        console.log('err', err)
+        callback(null, !err && !!buffer)
+    }))
 
     public writeBlock: (block: Block) => Observable<boolean> = Observable.bindNodeCallback((
         block: Block,

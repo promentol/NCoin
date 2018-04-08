@@ -34,12 +34,12 @@ export class NCoinServerConnection extends NCoinConnection {
         input.on("data", (data) => {
                 this.messages.next(data)
             })
-        input.on("error", (e) => {
+        this.socket.on("error", (e) => {
             console.log(e)
             input.destroy()
             this.messages.complete()
         })
-        input.on("close", (data) => {
+        this.socket.on("close", (data) => {
             this.messages.complete()
         })
 
@@ -68,12 +68,12 @@ export class NCoinClientConnection extends NCoinConnection {
         input.on("data", (data) => {
             this.messages.next(data)
         })
-        input.on("error", (e) => {
+        this.client.on("error", (e) => {
             input.destroy()
             console.log(e)
             this.messages.complete()
         })
-        input.on("close", () => {
+        this.client.on("close", () => {
             this.messages.complete()
         })
         this.writeStream.pipe(this.client)

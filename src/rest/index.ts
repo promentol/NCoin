@@ -21,17 +21,15 @@ export function initREST(port) {
     })
 
     app.get('/blocks/:hash', function (req, res) {
-        Actions.getBlock(req.params.hash).subscribe((blocksCount) => {
-            res.send({
-                blocksCount
-            })
-        })
+        Actions.getBlock(req.params.hash).toPromise().then((block) => {
+            res.send(block)
+        }).catch(e => res.status(400).send('NOT EXISTS'))
     })
 
     app.get('/transactions/:hash', function (req, res) {
-        Actions.getTransaction(req.params.hash).subscribe((tx) => {
+        Actions.getTransaction(req.params.hash).toPromise().then((tx) => {
             res.send(tx)
-        })
+        }).catch(e => res.status(400).send('NOT EXISTS'))
     })
 
     app.get('/:address/nonce', function (req, res) {

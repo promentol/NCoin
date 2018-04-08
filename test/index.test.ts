@@ -5,10 +5,11 @@ import {
     Persistence,
     BlockHeader,
     Actions,
+    Crypto,
     encodeBlockHeader,
     encodeTransaction,
 } from '../src/core'
-/*
+
 var levelup = require('levelup')
 var leveldown = require('leveldown')
 
@@ -16,7 +17,6 @@ var leveldown = require('leveldown')
 var db = levelup(leveldown('./data'))
 
 
-/*
 Persistence.Instance.setDB(db).subscribe(() => {
     Actions.getBlockUntill('6319dabd2040e9f24f7fb09876c5e4b9797ad96661f5b3be8275b8c2c38707dd').subscribe((x) => {
         console.log(x)
@@ -89,7 +89,6 @@ var valid = validate({
     ]
 });
 if (!valid) console.log(validate.errors);
-*/
 
 import * as ndjson from 'ndjson'
 
@@ -106,3 +105,8 @@ ls.on('error', function (err) {
 });
 
 ls.write('{ "foo" : "bar" }\n   n  { "foo" : "baz" }\n');
+
+console.log(Crypto.hashTransaction(
+    { "data": { "to": "A99x/geiJvPrh1vp/kTIH9qdtTgGAIJXmOhF57zVWQuO", "type": 0, "amount": 100, "payload": "payload", "nonce": 0 } }
+))*/
+

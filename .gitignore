@@ -1,10 +1,9 @@
 .vscode
 node_modules
-data
 asd
 src/**/*.js
 src/**/*.js.map
 test/**/*.js
 test/**/*.js.map
 TestResults
-dist
+data

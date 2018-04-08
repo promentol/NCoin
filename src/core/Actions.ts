@@ -89,7 +89,8 @@ export namespace Actions {
     }
     export const processTransaction = (tx: Transaction) => {
         //verify transaction
-        return Persistence.Instance.addTransactionToPool(tx)
+        Persistence.Instance.addTransactionToPool(tx)
+        return Persistence.Instance.saveTransaction(tx)
     }
 
     export const processBlock = (block: Block): Observable<Block> => {
@@ -102,7 +103,12 @@ export namespace Actions {
         }).do(()=>{
             const hashes = block.transactions.map((x)=>Crypto.hashTransaction(x))
             return Persistence.Instance.eraseTransactionToPool(hashes);
-        })
+        }).switchMap((x)=>{
+            return Observable.from(block.transactions);
+        }).mergeMap((tx)=>{
+            console.log('tx', tx, Crypto.hashTransaction(tx))
+            return Persistence.Instance.saveTransaction(tx)
+        }).map(()=>block)
         /*
         return Persistence.Instance.lastBlock.map((lastBlock)=>{
             if()
